@@ -1,4 +1,5 @@
 streamlit
 openai
-fitz
-frontend
+pandas
+requests
+json

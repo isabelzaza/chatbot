@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
-import fitz
-from typing import Dict, List
 
 def amplify_chat(prompt):
     url = "https://prod-api.vanderbilt.ai/chat"
@@ -28,13 +26,11 @@ def amplify_chat(prompt):
 def extract_text_from_files(uploaded_files):
     combined_text = ""
     for file in uploaded_files:
-        if file.name.endswith('.pdf'):
-            pdf_bytes = file.read()
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            for page in doc:
-                combined_text += page.get_text()
-        else:
-            combined_text += str(file.read(), 'utf-8')
+        try:
+            text = str(file.read(), 'utf-8')
+            combined_text += text
+        except UnicodeDecodeError:
+            st.warning(f"Could not read {file.name}. Please ensure it's a text file.")
     return combined_text
 
 def analyze_documents(text):
@@ -63,7 +59,7 @@ def main():
     st.write("The full inventory is 52 questions but I want to help you answer them as fast as possible. "
              "If you have a syllabus or other relevant teaching documents, please upload them.")
 
-    uploaded_files = st.file_uploader("Upload files", accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Upload files (text files only)", accept_multiple_files=True, type=['txt', 'csv', 'md'])
     
     if uploaded_files:
         if st.button("Process Files"):
