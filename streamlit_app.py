@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-import json
+import json 
 
 def amplify_chat(prompt):
     url = "https://prod-api.vanderbilt.ai/chat"
