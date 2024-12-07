@@ -3,14 +3,14 @@ import pandas as pd
 import json
 import PyPDF2
 import io
-import openai
+from openai import OpenAI
 
-# Set OpenAI API key directly
-openai.api_key = "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"
+# Initialize OpenAI client
+client = OpenAI(api_key="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")
 
 def process_with_openai(prompt):
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are an assistant analyzing course documents. Extract information and map it to specific question numbers, providing answers in JSON format."},
