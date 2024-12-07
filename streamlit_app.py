@@ -4,14 +4,13 @@ import json
 import PyPDF2
 import io
 from openai import OpenAI
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # Initialize OpenAI client
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+if 'OPENAI_API_KEY' not in st.secrets:
+    st.error('OpenAI API key not found. Please set it in your environment or Streamlit secrets.')
+    st.stop()
+
+client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 
 def process_with_openai(prompt):
     try:
