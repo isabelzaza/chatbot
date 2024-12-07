@@ -1,33 +1,27 @@
 import streamlit as st
 import pandas as pd
-import requests
 import json
 import PyPDF2
 import io
+import openai
 
-def amplify_chat(prompt):
-    url = "https://prod-api.vanderbilt.ai/chat"
-    headers = {'Content-Type': 'application/json'}
-    payload = {
-        "data": {
-            "model": "gpt-4o",
-            "temperature": 0.7,
-            "max_tokens": 500,
-            "dataSources": [],
-            "assistantId": "astp/abcdefghijk",
-            "options": {
-                "ragOnly": False,
-                "skipRag": True,
-                "prompt": prompt
-            }
-        }
-    }
+# Set OpenAI API key directly
+openai.api_key = "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"
+
+def process_with_openai(prompt):
     try:
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error calling Amplify API: {str(e)}")
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are an assistant analyzing course documents. Extract information and map it to specific question numbers, providing answers in JSON format."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        return response
+    except Exception as e:
+        st.error(f"Error calling OpenAI API: {str(e)}")
         return None
 
 def extract_text_from_files(uploaded_files):
@@ -68,10 +62,10 @@ Return your answers in JSON format where the keys are question numbers (Q1, Q2, 
 
 Document text: {text[:8000]}"""
     
-    response = amplify_chat(prompt)
-    if response and 'choices' in response:
+    response = process_with_openai(prompt)
+    if response and hasattr(response, 'choices') and len(response.choices) > 0:
         try:
-            content = response['choices'][0]['message']['content']
+            content = response.choices[0].message.content
             extracted_answers = json.loads(content)
             return extracted_answers
         except json.JSONDecodeError as e:
@@ -87,7 +81,79 @@ def save_to_sheets(answers):
     st.write("Debug - Answers to save:", answers)
     pass
 
-# [QUESTIONS dictionary stays the same]
+# Dictionary of questions by section
+QUESTIONS = {
+    "Course Details": {
+        1: "Instructor Name",
+        2: "Course Number",
+        3: "Semester and Year",
+        4: "Number of Students",
+        5: "Is the course a major requirement? (y/n)",
+        6: "Is this course a lab? (y/n)",
+        7: "Is this course a seminar? (y/n)"
+    },
+    "Course Information": {
+        8: "Do you give students a list of the topics covered in the course? (y/n)",
+        9: "Do you provide a list of general skills or abilities students should develop (like critical thinking)? (y/n)",
+        10: "Do you list specific skills or abilities students should learn from specific topics? (y/n)"
+    },
+    "Supporting Materials": {
+        11: "Do you use a platform for class discussions online? (y/n)",
+        12: "Do you use a course website like Brightspace to share materials? (y/n)",
+        13: "Do you provide solutions to homework assignments? (y/n)",
+        14: "Do you share examples of how to solve problems (e.g., step-by-step guides)? (y/n)",
+        15: "Do you give practice tests or past exam papers? (y/n)",
+        16: "Do you post videos, animations, or simulations to explain course content? (y/n)",
+        17: "Do you share your lecture slides or notes with students? (y/n)",
+        18: "Do you provide other materials, like readings or study aids? (y/n)",
+        19: "Do you give students access to articles or research related to the course? (y/n)",
+        20: "Do you share examples of excellent student papers or projects? (y/n)",
+        21: "Do you provide grading guides/ rubrics to explain how assignments would be marked? (y/n)"
+    },
+    "In-Class Features": {
+        22: "Do you regularly use a strategy to elicit student questions in class -beyond saying are there any questions and moving on? (y/n)",
+        23: "Do students work in small groups during class?",
+        24: "How often do you show demonstrations, simulations, or videos?",
+        25: "How often do you ask students to predict what would happen before showing them the answer?",
+        26: "How often do you talk about why the material might be useful or interesting from a student's point of view?",
+        27: "Do you use a response system (e.g., Top hat) for ungraded activities?",
+        28: "Do you use a response system (e.g., Top hat) for graded activities?"
+    },
+    "Assignments": {
+        29: "Do you give homework or practice problems that do not count towards their grades? (y/n)",
+        30: "Do you give homework or problems that counted towards their grades regularly? (y/n)",
+        31: "Do you assign a project or paper where students had some choice about the topic? (y/n)",
+        32: "Do you encourage students to work together on individual assignments? (y/n)",
+        33: "Do you give group assignments? (y/n)"
+    },
+    "Feedback and Testing": {
+        34: "Do you ask students for feedback?",
+        35: "Do you allow students to revise their work based on feedback? (y/n)",
+        36: "Do you share answer keys or grading guides for assignments? (y/n)",
+        37: "Do students see graded exams or quizzes? (y/n)",
+        38: "Do you share answer keys for exams or quizzes? (y/n)",
+        39: "Do you encourage students to meet with you to discuss their progress? (y/n)"
+    },
+    "Other": {
+        40: "Do you give a test at the beginning of the course to see what students already know? (y/n)",
+        41: "Do you use a pre-and-post test to measure how much students learned? (y/n)",
+        42: "Do you ask students about their interest or feelings about the subject before and after the course? (y/n)",
+        43: "Do you give students some control over their learning, like choosing topics or how they would be graded? (y/n)",
+        44: "Do you try new teaching methods or materials and measure how well they work?"
+    },
+    "TA Training": {
+        45: "Do you have graduate TAs or undergraduate LAs for this course? (y/n)",
+        46: "Do you provide TAs/LAs with some training on teaching methods? (y/n)",
+        47: "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing? (y/n)"
+    },
+    "Teaching Collaboration": {
+        48: "Do you use teaching materials from other instructors? (y/n)",
+        49: "Do you use some of the same teaching materials as other instructors of the same course in your department? (y/n)",
+        50: "Do you talk with colleagues about how to teach this course? (y/n)",
+        51: "To prepare this course, did you read articles or attend workshops to improve your teaching? (y/n)",
+        52: "Have you observed another instructor's class to get ideas? (y/n)"
+    }
+}
 
 def render_section_page(section_name, questions_dict):
     st.header(section_name)
@@ -147,9 +213,7 @@ def main():
             type=['txt', 'csv', 'md', 'pdf']
         )
         
-        # Process files automatically when uploaded
         if uploaded_files:
-            # Process only new files
             new_files = []
             for file in uploaded_files:
                 if file.name not in st.session_state.processed_files:
