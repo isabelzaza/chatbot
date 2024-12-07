@@ -6,7 +6,7 @@ import io
 from openai import OpenAI
 
 # Initialize OpenAI client
-client = OpenAI(api_key="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")
+client = OpenAI(api_key="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")
 
 def process_with_openai(prompt):
     try:
