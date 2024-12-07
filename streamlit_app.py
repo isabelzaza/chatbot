@@ -74,7 +74,62 @@ QUESTIONS = {
         9: "Do you provide a list of general skills or abilities students should develop (like critical thinking)? (y/n)",
         10: "Do you list specific skills or abilities students should learn from specific topics? (y/n)"
     },
-    # Add all other sections and questions...
+    "Supporting Materials": {
+        11: "Do you use a platform for class discussions online? (y/n)",
+        12: "Do you use a course website like Brightspace to share materials? (y/n)",
+        13: "Do you provide solutions to homework assignments? (y/n)",
+        14: "Do you share examples of how to solve problems (e.g., step-by-step guides)? (y/n)",
+        15: "Do you give practice tests or past exam papers? (y/n)",
+        16: "Do you post videos, animations, or simulations to explain course content? (y/n)",
+        17: "Do you share your lecture slides or notes with students? (y/n)",
+        18: "Do you provide other materials, like readings or study aids? (y/n)",
+        19: "Do you give students access to articles or research related to the course? (y/n)",
+        20: "Do you share examples of excellent student papers or projects? (y/n)",
+        21: "Do you provide grading guides/ rubrics to explain how assignments would be marked? (y/n)"
+    },
+    "In-Class Features": {
+        22: "Do you regularly use a strategy to elicit student questions in class -beyond saying are there any questions and moving on? (y/n)",
+        23: "Do students work in small groups during class?",
+        24: "How often do you show demonstrations, simulations, or videos?",
+        25: "How often do you ask students to predict what would happen before showing them the answer?",
+        26: "How often do you talk about why the material might be useful or interesting from a student's point of view?",
+        27: "Do you use a response system (e.g., Top hat) for ungraded activities?",
+        28: "Do you use a response system (e.g., Top hat) for graded activities?"
+    },
+    "Assignments": {
+        29: "Do you give homework or practice problems that do not count towards their grades? (y/n)",
+        30: "Do you give homework or problems that counted towards their grades regularly? (y/n)",
+        31: "Do you assign a project or paper where students had some choice about the topic? (y/n)",
+        32: "Do you encourage students to work together on individual assignments? (y/n)",
+        33: "Do you give group assignments? (y/n)"
+    },
+    "Feedback and Testing": {
+        34: "Do you ask students for feedback?",
+        35: "Do you allow students to revise their work based on feedback? (y/n)",
+        36: "Do you share answer keys or grading guides for assignments? (y/n)",
+        37: "Do students see graded exams or quizzes? (y/n)",
+        38: "Do you share answer keys for exams or quizzes? (y/n)",
+        39: "Do you encourage students to meet with you to discuss their progress? (y/n)"
+    },
+    "Other": {
+        40: "Do you give a test at the beginning of the course to see what students already know? (y/n)",
+        41: "Do you use a pre-and-post test to measure how much students learned? (y/n)",
+        42: "Do you ask students about their interest or feelings about the subject before and after the course? (y/n)",
+        43: "Do you give students some control over their learning, like choosing topics or how they would be graded? (y/n)",
+        44: "Do you try new teaching methods or materials and measure how well they work?"
+    },
+    "TA Training": {
+        45: "Do you have graduate TAs or undergraduate LAs for this course? (y/n)",
+        46: "Do you provide TAs/LAs with some training on teaching methods? (y/n)",
+        47: "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing? (y/n)"
+    },
+    "Teaching Collaboration": {
+        48: "Do you use teaching materials from other instructors? (y/n)",
+        49: "Do you use some of the same teaching materials as other instructors of the same course in your department? (y/n)",
+        50: "Do you talk with colleagues about how to teach this course? (y/n)",
+        51: "To prepare this course, did you read articles or attend workshops to improve your teaching? (y/n)",
+        52: "Have you observed another instructor's class to get ideas? (y/n)"
+    }
 }
 
 def render_section_page(section_name, questions_dict):
