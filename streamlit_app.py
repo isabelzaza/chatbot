@@ -4,9 +4,14 @@ import json
 import PyPDF2
 import io
 from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Initialize OpenAI client
-client = OpenAI(api_key="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")
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 def process_with_openai(prompt):
     try:
