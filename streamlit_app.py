@@ -16,26 +16,23 @@ def test_api():
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
-    # Modified content structure
+    # Back to simple string content
     payload = {
         "data": {
             "messages": [
                 {
+                    "role": "system",
+                    "content": "You are a helpful assistant."
+                },
+                {
                     "role": "user",
-                    "content": {
-                        "type": "text",
-                        "text": "Hello, can you hear me?"
-                    }
+                    "content": "Hello, can you hear me?"
                 }
             ],
             "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
             "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"],
             "temperature": 0.7,
-            "max_tokens": 500,
-            "options": {
-                "ragOnly": False,
-                "skipRag": True
-            }
+            "max_tokens": 500
         }
     }
     
@@ -50,20 +47,22 @@ def test_api():
         st.write("Raw Response:", response.text)
         
         if response.status_code == 200:
-            response_json = response.json()
-            st.write("Parsed Response:", response_json)
-            
-            if isinstance(response_json, dict):
-                if response_json.get('success') == False:
-                    st.error(f"API Error: {response_json.get('message')}")
-                else:
-                    st.success("API call successful!")
-                    if 'data' in response_json:
-                        st.write("Response data:", response_json['data'])
+            try:
+                response_json = response.json()
+                st.write("Parsed Response:", response_json)
+                
+                if isinstance(response_json, dict):
+                    if response_json.get('success') == False:
+                        st.error(f"API Error: {response_json.get('message')}")
                     else:
+                        st.success("API call successful!")
                         st.write("Full response:", response_json)
-            else:
-                st.error(f"Unexpected response format: {response_json}")
+                else:
+                    st.error(f"Unexpected response format: {response_json}")
+                    
+            except json.JSONDecodeError as e:
+                st.error(f"Failed to parse response as JSON: {e}")
+                st.write("Raw response was:", response.text)
         
     except Exception as e:
         st.error(f"Error: {str(e)}")
