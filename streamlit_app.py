@@ -166,7 +166,7 @@ def frequency_buttons(key, question, options):
                 if key in st.session_state.auto_filled:
                     st.session_state.auto_filled.remove(key)
                 st.rerun()
-                
+
 def number_input_field(key, question, min_val, max_val, unit=''):
     """Create a number input field or slider with auto-fill indication"""
     pre_answered = key in st.session_state.auto_filled
@@ -447,7 +447,54 @@ def main():
     elif st.session_state.current_step == 'questions':
         st.title('Course Information')
         
-        # [Previous questions code remains the same]
+        elif st.session_state.current_step == 'questions':
+        st.title('Course Information')
+        
+        # Progress bar
+        total_questions = 52
+        answered_questions = len([k for k in st.session_state.answers.keys() if st.session_state.answers[k] != ''])
+        progress = answered_questions / total_questions
+        st.progress(progress)
+        st.write(f'Progress: {answered_questions}/{total_questions} questions answered')
+        
+        for section, q_range in sections.items():
+            st.header(section)
+            for i in q_range:
+                q_key = f'Q{i}'
+                
+                # Text input for first four questions
+                if i <= 4:
+                    text_input_field(q_key, QUESTIONS[q_key])
+                
+                # Percentage sliders
+                elif i in [21, 22]:
+                    number_input_field(q_key, QUESTIONS[q_key], 0, 100, 'percentage')
+                
+                # Duration input
+                elif i == 23:
+                    number_input_field(q_key, QUESTIONS[q_key], 0, 180, 'minutes')
+                
+                # Frequency questions
+                elif i in [24, 26, 27, 28]:
+                    frequency_buttons(
+                        q_key,
+                        QUESTIONS[q_key],
+                        ['every class', 'every week', 'once in a while', 'rarely']
+                    )
+                
+                # Often/sometimes/rarely question
+                elif i == 44:
+                    frequency_buttons(
+                        q_key,
+                        QUESTIONS[q_key],
+                        ['often', 'sometimes', 'rarely']
+                    )
+                
+                # Yes/No questions for all others
+                else:
+                    yes_no_buttons(q_key, QUESTIONS[q_key])
+            
+            st.markdown('---')
 
         col1, col2 = st.columns([1, 5])
         with col1:
