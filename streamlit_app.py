@@ -16,23 +16,15 @@ def test_api():
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
-    # Back to simple string content
+    # Simplified message structure
     payload = {
         "data": {
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant."
-                },
-                {
-                    "role": "user",
-                    "content": "Hello, can you hear me?"
-                }
-            ],
+            "message": "Hello, can you hear me?",
             "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
             "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"],
             "temperature": 0.7,
-            "max_tokens": 500
+            "max_tokens": 500,
+            "system_message": "You are a helpful assistant."
         }
     }
     
@@ -54,6 +46,7 @@ def test_api():
                 if isinstance(response_json, dict):
                     if response_json.get('success') == False:
                         st.error(f"API Error: {response_json.get('message')}")
+                        st.write("Would you be able to share any example of a working API call to this endpoint?")
                     else:
                         st.success("API call successful!")
                         st.write("Full response:", response_json)
@@ -79,6 +72,13 @@ def main():
     
     if st.button("Test API Connection"):
         test_api()
+    
+    st.write("""
+    Note: To help debug this further, it would be very helpful to have:
+    1. A working example of an API call
+    2. The server-side error logs
+    3. API documentation showing the expected format
+    """)
 
 if __name__ == "__main__":
     main()
