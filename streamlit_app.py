@@ -16,7 +16,7 @@ def test_api():
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
-    # Added required temperature parameter
+    # Added both required parameters
     payload = {
         "data": {
             "messages": [
@@ -27,7 +27,8 @@ def test_api():
             ],
             "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
             "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"],
-            "temperature": 0.7
+            "temperature": 0.7,
+            "max_tokens": 500
         }
     }
     
