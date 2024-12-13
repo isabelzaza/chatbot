@@ -114,10 +114,14 @@ def yes_no_buttons(key, question):
     
     display_question(key, question, pre_answered)
     
-    col1, col2 = st.columns(2)
+    # Create a container to hold the buttons close together
+    button_container = st.container()
+    
+    # Use columns with smaller ratios and more columns for spacing
+    col1, col2, col3, col4, col5 = button_container.columns([1, 1, 0.2, 1, 1])
     current_value = st.session_state.answers.get(key, '')
     
-    with col1:
+    with col2:
         if st.button('Yes', 
                     key=f'{key}_yes',
                     type='primary' if current_value == 'y' else 'secondary'):
@@ -126,7 +130,7 @@ def yes_no_buttons(key, question):
                 st.session_state.auto_filled.remove(key)
             st.rerun()
     
-    with col2:
+    with col4:
         if st.button('No',
                     key=f'{key}_no',
                     type='primary' if current_value == 'n' else 'secondary'):
@@ -157,7 +161,7 @@ def frequency_buttons(key, question, options):
                 st.rerun()
 
 def number_input_field(key, question, min_val, max_val, unit=''):
-    """Create a number input field with auto-fill indication"""
+    """Create a number input field or slider with auto-fill indication"""
     pre_answered = key in st.session_state.auto_filled
     
     display_question(key, question, pre_answered)
@@ -168,19 +172,27 @@ def number_input_field(key, question, min_val, max_val, unit=''):
     except (ValueError, TypeError):
         current_val = 0
     
-    new_val = st.number_input(
-        f'Edit if needed ({unit}):',
-        min_value=min_val,
-        max_value=max_val,
-        value=current_val,
-        key=f'number_{key}'
-    )
+    if unit == 'percentage':
+        new_val = st.slider(
+            f'Edit if needed ({unit}):',
+            min_value=min_val,
+            max_value=max_val,
+            value=current_val,
+            key=f'slider_{key}'
+        )
+    else:
+        new_val = st.number_input(
+            f'Edit if needed ({unit}):',
+            min_value=min_val,
+            max_value=max_val,
+            value=current_val,
+            key=f'number_{key}'
+        )
     
     if new_val != current_val:
         st.session_state.answers[key] = str(new_val)
         if key in st.session_state.auto_filled:
             st.session_state.auto_filled.remove(key)
-
 def amplify_chat(prompt, content=''):
     """Make a call to Amplify API with proper error handling"""
     url = 'https://prod-api.vanderbilt.ai/chat'
