@@ -16,7 +16,7 @@ def test_api():
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
-    # Using the exact format provided by Amplify AI
+    # Added required temperature parameter
     payload = {
         "data": {
             "messages": [
@@ -26,7 +26,8 @@ def test_api():
                 }
             ],
             "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-            "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"]
+            "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"],
+            "temperature": 0.7
         }
     }
     
@@ -38,12 +39,13 @@ def test_api():
         response = requests.post(url, headers=headers, json=payload)
         
         st.write("Response Status:", response.status_code)
-        st.write("Response Headers:", dict(response.headers))
-        st.write("Response Content:", response.text)
+        if response.status_code != 200:
+            st.write("Response Headers:", dict(response.headers))
+            st.write("Response Content:", response.text)
         
         if response.status_code == 200:
             response_json = response.json()
-            st.write("Parsed Response:", response_json)
+            st.write("Success! Response:", response_json)
             
             if response_json.get('success') == False:
                 st.error(f"API Error: {response_json.get('message')}")
