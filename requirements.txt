@@ -1,6 +1,7 @@
-streamlit
-openai
-PyPDF2
-pandas
+streamlit 
+pandas 
+google-auth
+gspread
 requests
+PyPDF2
 python-dotenv
