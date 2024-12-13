@@ -1,35 +1,12 @@
 import streamlit as st
 import requests
 import json
-from PyPDF2 import PdfReader
-import io
 
 # Configure page
-st.set_page_config(page_title="Psychology Dept. Teaching Inventory - Simple", layout="wide")
+st.set_page_config(page_title="API Test", layout="wide")
 
-# Define just the first 5 questions
-QUESTIONS = {
-    "Q1": "Instructor Name:",
-    "Q2": "Course Number:",
-    "Q3": "Semester and Year:",
-    "Q4": "Number of Students:",
-    "Q5": "Do you give students a list of the topics that will be covered in the course?"
-}
-
-def extract_text_from_pdf(pdf_file):
-    """Extract text from uploaded PDF file"""
-    try:
-        pdf_reader = PdfReader(io.BytesIO(pdf_file.read()))
-        text = ""
-        for page_num in range(len(pdf_reader.pages)):
-            text += pdf_reader.pages[page_num].extract_text()
-        return text
-    except Exception as e:
-        st.error(f"Error reading PDF: {str(e)}")
-        return ""
-
-def amplify_chat(prompt, content=""):
-    """Make a call to Amplify API with proper error handling"""
+def test_api():
+    """Simple test of Amplify API"""
     url = "https://prod-api.vanderbilt.ai/chat"
     
     headers = {
@@ -37,18 +14,10 @@ def amplify_chat(prompt, content=""):
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
+    # Minimal test payload
     payload = {
         "data": {
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are an assistant analyzing course documents."
-                },
-                {
-                    "role": "user",
-                    "content": f"Context: {content}\n\nQuestion: {prompt}"
-                }
-            ],
+            "message": "Hello, can you hear me?",
             "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
             "temperature": 0.7,
             "max_tokens": 500,
@@ -57,80 +26,24 @@ def amplify_chat(prompt, content=""):
     }
     
     try:
-        response = requests.post(
-            url, 
-            headers=headers, 
-            json=payload
-        )
+        st.write("Making API call...")
+        st.write("Headers:", {k:v for k,v in headers.items() if k != 'Authorization'})
+        st.write("Payload:", json.dumps(payload, indent=2))
         
-        # Debug: Print full response
-        st.write("Full response:", response.json())
+        response = requests.post(url, headers=headers, json=payload)
         
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error calling Amplify API: {str(e)}")
-        return None
-
-def analyze_syllabus(content):
-    """Analyze syllabus content for first 5 questions"""
-    prompt = """
-    Analyze this course document and answer the following questions. For each question, 
-    respond only with the answer (no explanation). If you're not certain, respond with 'Unknown':
-    """
-    
-    answers = {}
-    with st.spinner("Analyzing uploaded documents..."):
-        for i in range(1, 6):
-            specific_prompt = f"{prompt}\n\nQuestion: {QUESTIONS[f'Q{i}']}"
-            response = amplify_chat(specific_prompt, content)
-            
-            # Debug: Print response structure
-            st.write(f"Response for Q{i}:", response)
-            
-            try:
-                # Try different possible response structures
-                if response and isinstance(response, dict):
-                    if 'data' in response and 'content' in response['data']:
-                        answer = response['data']['content'].strip()
-                    elif 'data' in response and 'message' in response['data']:
-                        answer = response['data']['message'].strip()
-                    elif 'message' in response:
-                        answer = response['message'].strip()
-                    elif 'content' in response:
-                        answer = response['content'].strip()
-                    else:
-                        answer = "Unable to parse response"
-                        st.error(f"Unexpected response structure for Q{i}: {response}")
-                else:
-                    answer = "Invalid response"
-                
-                answers[f'Q{i}'] = answer
-                st.write(f"{QUESTIONS[f'Q{i}']} {answer}")
-                
-            except Exception as e:
-                st.error(f"Error processing response for Q{i}: {str(e)}")
-                st.write(f"Response was: {response}")
+        st.write("Response Status:", response.status_code)
+        st.write("Response Headers:", dict(response.headers))
+        st.write("Response Content:", response.text)
+        
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
 
 def main():
-    st.title("Psychology Department Teaching Inventory - Simple Version")
-    st.write("Please upload your syllabus or other relevant documents.")
+    st.title("Amplify API Test")
     
-    uploaded_file = st.file_uploader(
-        "Upload document",
-        type=['pdf', 'txt']
-    )
-    
-    if uploaded_file is not None:
-        if st.button("Analyze Document"):
-            content = ""
-            if uploaded_file.type == "application/pdf":
-                content = extract_text_from_pdf(uploaded_file)
-            else:
-                content = str(uploaded_file.read(), 'utf-8')
-            
-            if content:
-                analyze_syllabus(content)
+    if st.button("Test API Connection"):
+        test_api()
 
 if __name__ == "__main__":
     main()
