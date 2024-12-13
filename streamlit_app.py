@@ -21,8 +21,8 @@ def extract_text_from_pdf(pdf_file):
     try:
         pdf_reader = PdfReader(io.BytesIO(pdf_file.read()))
         text = ""
-        for page in pdf_reader:
-            text += page.extract_text()
+        for page_num in range(len(pdf_reader.pages)):
+            text += pdf_reader.pages[page_num].extract_text()
         return text
     except Exception as e:
         st.error(f"Error reading PDF: {str(e)}")
