@@ -31,18 +31,12 @@ def extract_text_from_pdf(pdf_file):
 def amplify_chat(prompt, content=""):
     """Make a call to Amplify API with proper error handling"""
     url = "https://prod-api.vanderbilt.ai/chat"
-    headers = {'Content-Type': 'application/json'}
     
-    # Debug: Check if we have the required secrets
-    if 'AMPLIFY_API_KEY' not in st.secrets:
-        st.error("AMPLIFY_API_KEY not found in secrets")
-        return None
-    if 'AMPLIFY_ASSISTANT_ID' not in st.secrets:
-        st.error("AMPLIFY_ASSISTANT_ID not found in secrets")
-        return None
-        
-    # Debug: Print API key format (first 4 chars)
-    st.write(f"API Key starts with: {st.secrets['AMPLIFY_API_KEY'][:4]}...")
+    # Set up headers with authentication token
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
+    }
     
     payload = {
         "data": {
@@ -60,20 +54,17 @@ def amplify_chat(prompt, content=""):
     }
     
     try:
-        # Debug: Print full request details (except sensitive info)
-        st.write("Making request to:", url)
-        st.write("Request payload:", {k:v for k,v in payload.items() if k != "api_key"})
-        
+        # Make request with Authorization header instead of auth parameter
         response = requests.post(
             url, 
             headers=headers, 
-            data=json.dumps(payload),
-            auth=(st.secrets["AMPLIFY_API_KEY"], '')
+            json=payload  # Using json parameter instead of data for automatic JSON encoding
         )
         
-        # Debug: Print response status and content
+        # Debug: Print response status
         st.write("Response status:", response.status_code)
-        st.write("Response content:", response.text[:200])  # First 200 chars
+        if response.status_code != 200:
+            st.write("Response content:", response.text)
         
         response.raise_for_status()
         return response.json()
@@ -101,10 +92,6 @@ def analyze_syllabus(content):
 
 def main():
     st.title("Psychology Department Teaching Inventory - Simple Version")
-    
-    # Debug: Check secrets at startup
-    st.write("Available secrets:", list(st.secrets.keys()))
-    
     st.write("Please upload your syllabus or other relevant documents.")
     
     uploaded_file = st.file_uploader(
