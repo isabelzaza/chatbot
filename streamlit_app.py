@@ -14,15 +14,13 @@ def test_api():
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
-    # Updated payload with messages array
+    # Simplified payload structure
     payload = {
         "data": {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": "Hello, can you hear me?"
-                }
-            ],
+            "message": {
+                "role": "user",
+                "content": "Hello, can you hear me?"
+            },
             "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
             "temperature": 0.7,
             "max_tokens": 500,
@@ -42,8 +40,14 @@ def test_api():
         st.write("Response Content:", response.text)
         
         if response.status_code == 200:
-            st.success("API call successful!")
-            st.json(response.json())
+            response_json = response.json()
+            st.write("Parsed Response:", response_json)
+            
+            if response_json.get('success') == False:
+                st.error(f"API Error: {response_json.get('message')}")
+            else:
+                st.success("API call successful!")
+                st.json(response_json)
         
     except Exception as e:
         st.error(f"Error: {str(e)}")
@@ -53,6 +57,10 @@ def main():
     
     # Display the secrets we're using (without showing actual values)
     st.write("Available secrets:", list(st.secrets.keys()))
+    
+    # Also display the API key length to verify it's loaded correctly
+    if "AMPLIFY_API_KEY" in st.secrets:
+        st.write("API Key length:", len(st.secrets["AMPLIFY_API_KEY"]))
     
     if st.button("Test API Connection"):
         test_api()
