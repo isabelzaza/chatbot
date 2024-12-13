@@ -9,19 +9,29 @@ st.set_page_config(page_title="API Test", layout="wide")
 
 def test_api():
     """Simple test of Amplify API"""
+    # Define your API key and assistant ID
+    AMPLIFY_API_KEY = st.secrets["AMPLIFY_API_KEY"]
+    AMPLIFY_ASSISTANT_ID = st.secrets["AMPLIFY_ASSISTANT_ID"]
+    
     url = "https://prod-api.vanderbilt.ai/chat"
     
+    # Define the headers exactly as shown
     headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {AMPLIFY_API_KEY}"
     }
     
-    # Simplified message structure
+    # Define the payload exactly as shown
     payload = {
         "data": {
-            "message": "Hello, can you hear me?",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Hello, can you hear me?"
+                }
+            ],
             "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-            "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"],
+            "assistant_id": AMPLIFY_ASSISTANT_ID,
             "temperature": 0.7,
             "max_tokens": 500,
             "system_message": "You are a helpful assistant."
@@ -46,7 +56,6 @@ def test_api():
                 if isinstance(response_json, dict):
                     if response_json.get('success') == False:
                         st.error(f"API Error: {response_json.get('message')}")
-                        st.write("Would you be able to share any example of a working API call to this endpoint?")
                     else:
                         st.success("API call successful!")
                         st.write("Full response:", response_json)
@@ -72,13 +81,6 @@ def main():
     
     if st.button("Test API Connection"):
         test_api()
-    
-    st.write("""
-    Note: To help debug this further, it would be very helpful to have:
-    1. A working example of an API call
-    2. The server-side error logs
-    3. API documentation showing the expected format
-    """)
 
 if __name__ == "__main__":
     main()
