@@ -1,7 +1,9 @@
 streamlit 
 pandas 
-google-auth
 gspread
 requests
 PyPDF2
 python-dotenv
+google-auth==2.25.1
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.0
