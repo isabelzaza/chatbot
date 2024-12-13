@@ -356,7 +356,8 @@ def analyze_syllabus(content):
             st.success(f'Successfully pre-filled {num_found} answers from your document. Please review and modify if needed.')
         else:
             st.warning('Could not automatically extract any answers from the document. Please fill in the questions manually.')
-            def save_to_google_sheets(answers):
+            
+def save_to_google_sheets(answers):
     """Save answers to Google Sheets"""
     try:
         credentials = service_account.Credentials.from_service_account_info(
