@@ -356,26 +356,29 @@ def analyze_syllabus(content):
             st.success(f'Successfully pre-filled {num_found} answers from your document. Please review and modify if needed.')
         else:
             st.warning('Could not automatically extract any answers from the document. Please fill in the questions manually.')
-            
-def save_to_google_sheets(answers):
-    """Save answers to Google Sheets"""
+
+def save_response(answers):
+    """Save answers to Streamlit's built-in storage"""
     try:
-        credentials = service_account.Credentials.from_service_account_info(
-            json.loads(st.secrets['GOOGLE_SHEETS_CREDENTIALS']),
-            scopes=['https://www.googleapis.com/auth/spreadsheets']
-        )
-        client = gspread.authorize(credentials)
-        sheet = client.open_by_url(
-            'https://docs.google.com/spreadsheets/d/1SaIoxcZ5AmMl0NiTKyGvG247RcKjJYoJ9QuUgalbSSQ/edit?gid=0'
-        ).sheet1
+        # Create a record with timestamp
+        from datetime import datetime
+        record = {
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            **answers  # Include all answers
+        }
         
-        row = [answers.get(f'Q{i}', '') for i in range(1, 53)]
-        sheet.append_row(row)
+        # Get existing responses or initialize empty list
+        if 'stored_responses' not in st.session_state:
+            st.session_state.stored_responses = []
+        
+        # Add new response
+        st.session_state.stored_responses.append(record)
+        
         return True
     except Exception as e:
-        st.error(f'Error saving to Google Sheets: {str(e)}')
+        st.error(f'Error saving response: {str(e)}')
         return False
-
+    
 def main():
     sections = {
         'I: Course Details': range(1, 5),
@@ -476,26 +479,13 @@ def main():
             submit_button = st.button('Submit', type='primary')
         
         if submit_button:
-            with st.spinner('Saving your responses...'):
-                if save_to_google_sheets(st.session_state.answers):
-                    feedback_prompt = '''
-                    Based on the syllabus content provided, what are the most important items 
-                    that could be added to make the syllabus more comprehensive? Focus on items 
-                    that weren't found in the current syllabus. Keep the response brief and constructive.
-                    '''
-                    
-                    feedback_response = amplify_chat(feedback_prompt, st.session_state.uploaded_files_content)
-                    
-                    st.success('Thank you for completing the inventory!')
-                    if feedback_response and 'message' in feedback_response:
-                        st.info(feedback_response['message'])
-                    
-                    # Reset for next use
-                    st.session_state.current_step = 'welcome'
-                    st.session_state.answers = {}
-                    st.session_state.uploaded_files_content = ''
-                    st.session_state.auto_filled = set()
-                    st.rerun()
+    with st.spinner('Saving your responses...'):
+        if save_response(st.session_state.answers):
+            feedback_prompt = '''
+            Based on the syllabus content provided, what are the most important items 
+            that could be added to make the syllabus more comprehensive? Focus on items 
+            that weren't found in the current syllabus. Keep the response brief and constructive.
+            '''
 
 if __name__ == '__main__':
     main()
