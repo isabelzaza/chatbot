@@ -32,33 +32,33 @@ def amplify_chat(prompt, content=""):
     """Make a call to Amplify API with proper error handling"""
     url = "https://prod-api.vanderbilt.ai/chat"
     
-    # Set up headers with authentication token
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
     payload = {
-        "data": {
-            "model": "gpt-4",
-            "temperature": 0.7,
-            "max_tokens": 500,
-            "dataSources": [],
-            "assistantId": st.secrets["AMPLIFY_ASSISTANT_ID"],
-            "options": {
-                "ragOnly": False,
-                "skipRag": True,
-                "prompt": f"Context: {content}\n\nQuestion: {prompt}"
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are an assistant analyzing course documents."
+            },
+            {
+                "role": "user",
+                "content": f"Context: {content}\n\nQuestion: {prompt}"
             }
-        }
+        ],
+        "model": "gpt-4",
+        "temperature": 0.7,
+        "max_tokens": 500,
+        "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"]
     }
     
     try:
-        # Make request with Authorization header instead of auth parameter
         response = requests.post(
             url, 
             headers=headers, 
-            json=payload  # Using json parameter instead of data for automatic JSON encoding
+            json=payload
         )
         
         # Debug: Print response status
