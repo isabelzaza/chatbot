@@ -11,6 +11,8 @@ import io
 st.set_page_config(page_title="Psychology Dept. Teaching Inventory", layout="wide")
 
 # Define questions dictionary
+# At the top of your file, replace the existing QUESTIONS dictionary with this complete one:
+
 QUESTIONS = {
     "Q1": "Instructor Name:",
     "Q2": "Course Number:",
@@ -72,152 +74,66 @@ if 'answers' not in st.session_state:
     st.session_state.answers = {}
 if 'uploaded_files_content' not in st.session_state:
     st.session_state.uploaded_files_content = ""
-if 'auto_filled' not in st.session_state:
-    st.session_state.auto_filled = set()  # Keep track of which answers were automatically filled
 
-def display_question(key, question, pre_answered=False):
-    """Display the question with appropriate styling"""
-    if pre_answered:
-        st.markdown(
-            f'''
-            <div style="background-color: #d4edda; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
-                <span style="color: #155724;">{question}</span>
-                <span style="color: #28a745; float: right;">✓ Auto-filled</span>
-            </div>
-            ''', 
-            unsafe_allow_html=True
-        )
-    else:
-        st.write(question)
-
-def text_input_field(key, question):
-    """Create a text input field for free-form answers"""
-    pre_answered = key in st.session_state.auto_filled
+def yes_no_buttons(key, question, pre_answered=False):
+    """Create horizontal yes/no buttons with green background if pre-answered"""
+    col1, col2, col3 = st.columns([10, 1, 1])
     
-    display_question(key, question, pre_answered)
-    
-    value = st.session_state.answers.get(key, '')
-    new_value = st.text_input(
-        'Edit if needed:', 
-        value=value,
-        key=f'text_{key}'
-    )
-    
-    if new_value != value:
-        st.session_state.answers[key] = new_value
-        if key in st.session_state.auto_filled:
-            st.session_state.auto_filled.remove(key)
-
-def yes_no_buttons(key, question):
-    """Create yes/no buttons with auto-fill indication"""
-    pre_answered = key in st.session_state.auto_filled
-    
-    display_question(key, question, pre_answered)
-    
-    # Create a container to hold the buttons close together
-    button_container = st.container()
-    
-    # Use columns with smaller ratios and more columns for spacing
-    col1, col2, col3, col4, col5 = button_container.columns([1, 1, 0.2, 1, 1])
-    current_value = st.session_state.answers.get(key, '')
+    with col1:
+        if pre_answered:
+            st.markdown(f'<div style="background-color: #d4edda; padding: 10px; border-radius: 5px;">{question}</div>', unsafe_allow_html=True)
+        else:
+            st.write(question)
     
     with col2:
-        if st.button('Yes', 
-                    key=f'{key}_yes',
-                    type='primary' if current_value == 'y' else 'secondary'):
+        yes_button = st.button('Yes', key=f'{key}_yes')
+        if yes_button:
             st.session_state.answers[key] = 'y'
-            if key in st.session_state.auto_filled:
-                st.session_state.auto_filled.remove(key)
-            st.rerun()
     
-    with col4:
-        if st.button('No',
-                    key=f'{key}_no',
-                    type='primary' if current_value == 'n' else 'secondary'):
+    with col3:
+        no_button = st.button('No', key=f'{key}_no')
+        if no_button:
             st.session_state.answers[key] = 'n'
-            if key in st.session_state.auto_filled:
-                st.session_state.auto_filled.remove(key)
-            st.rerun()
+    
+    # Show current selection
+    if key in st.session_state.answers:
+        st.write(f"Selected: {'Yes' if st.session_state.answers[key] == 'y' else 'No'}")
 
-def frequency_buttons(key, question, options):
-    """Create frequency selection buttons with auto-fill indication"""
-    pre_answered = key in st.session_state.auto_filled
+def frequency_buttons(key, question, options, pre_answered=False):
+    """Create horizontal frequency buttons"""
+    col1, *option_cols = st.columns([10] + [1] * len(options))
     
-    display_question(key, question, pre_answered)
+    with col1:
+        if pre_answered:
+            st.markdown(f'<div style="background-color: #d4edda; padding: 10px; border-radius: 5px;">{question}</div>', unsafe_allow_html=True)
+        else:
+            st.write(question)
     
-    # Create a container to hold the buttons close together
-    button_container = st.container()
-    
-    # Calculate columns - we want small spaces between buttons
-    num_options = len(options)
-    # Create 2*num_options-1 columns to add spacing between buttons
-    cols = button_container.columns([1 if i % 2 == 0 else 0.2 for i in range(2*num_options-1)])
-    current_value = st.session_state.answers.get(key, '')
-    
-    # Use only the even-numbered columns (odd-numbered are spacers)
-    for i, option in enumerate(options):
-        with cols[i*2]:  # This skips the spacing columns
-            if st.button(
-                option,
-                key=f'{key}_{option}',
-                type='primary' if current_value == option else 'secondary'
-            ):
+    for option, col in zip(options, option_cols):
+        with col:
+            if st.button(option, key=f'{key}_{option}'):
                 st.session_state.answers[key] = option
-                if key in st.session_state.auto_filled:
-                    st.session_state.auto_filled.remove(key)
-                st.rerun()
+    
+    # Show current selection
+    if key in st.session_state.answers:
+        st.write(f"Selected: {st.session_state.answers[key]}")
 
-def number_input_field(key, question, min_val, max_val, unit=''):
-    """Create a number input field or slider with auto-fill indication"""
-    pre_answered = key in st.session_state.auto_filled
-    
-    display_question(key, question, pre_answered)
-    
-    current_val = st.session_state.answers.get(key, '0')
-    try:
-        current_val = int(float(current_val))
-    except (ValueError, TypeError):
-        current_val = 0
-    
-    if unit == 'percentage':
-        new_val = st.slider(
-            f'Edit if needed ({unit}):',
-            min_value=min_val,
-            max_value=max_val,
-            value=current_val,
-            key=f'slider_{key}'
-        )
-    else:
-        new_val = st.number_input(
-            f'Edit if needed ({unit}):',
-            min_value=min_val,
-            max_value=max_val,
-            value=current_val,
-            key=f'number_{key}'
-        )
-    
-    if new_val != current_val:
-        st.session_state.answers[key] = str(new_val)
-        if key in st.session_state.auto_filled:
-            st.session_state.auto_filled.remove(key)
-            
-def amplify_chat(prompt, content=''):
+def amplify_chat(prompt, content=""):
     """Make a call to Amplify API with proper error handling"""
-    url = 'https://prod-api.vanderbilt.ai/chat'
+    url = "https://prod-api.vanderbilt.ai/chat"
     headers = {'Content-Type': 'application/json'}
     
     payload = {
-        'data': {
-            'model': 'gpt-4',
-            'temperature': 0.7,
-            'max_tokens': 1000,
-            'dataSources': [],
-            'assistantId': st.secrets['AMPLIFY_ASSISTANT_ID'],
-            'options': {
-                'ragOnly': False,
-                'skipRag': True,
-                'prompt': f'''Context: {content}\n\nQuestion: {prompt}
-                Please be very conservative in your answers. Only say 'yes' if you find explicit evidence in the document.'''
+        "data": {
+            "model": "gpt-4",
+            "temperature": 0.7,
+            "max_tokens": 500,
+            "dataSources": [],
+            "assistantId": st.secrets["AMPLIFY_ASSISTANT_ID"],
+            "options": {
+                "ragOnly": False,
+                "skipRag": True,
+                "prompt": f"Context: {content}\n\nQuestion: {prompt}"
             }
         }
     }
@@ -227,194 +143,68 @@ def amplify_chat(prompt, content=''):
             url, 
             headers=headers, 
             data=json.dumps(payload),
-            auth=(st.secrets['AMPLIFY_API_KEY'], '')
+            auth=(st.secrets["AMPLIFY_API_KEY"], '')
         )
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        st.error(f'Error calling Amplify API: {str(e)}')
+        st.error(f"Error calling Amplify API: {str(e)}")
         return None
-    
+
 def extract_text_from_pdf(pdf_file):
     """Extract text from uploaded PDF file"""
     try:
         pdf_reader = PdfReader(io.BytesIO(pdf_file.read()))
-        text = ''
+        text = ""
         for page in pdf_reader:
             text += page.extract_text()
         return text
     except Exception as e:
-        st.error(f'Error reading PDF: {str(e)}')
-        return ''
+        st.error(f"Error reading PDF: {str(e)}")
+        return ""
 
 def analyze_syllabus(content):
     """Analyze syllabus content to extract answers"""
-    with st.spinner('Analyzing uploaded document to pre-fill answers...'):
-        extraction_prompts = {
-            # Basic information
-            'course_info': {
-                'prompt': '''Extract the following information from the document. 
-                Respond in JSON format:
-                {
-                    "instructor": "name or empty if not found",
-                    "course_number": "number or empty if not found",
-                    "semester": "semester and year or empty if not found",
-                    "students": "number or empty if not found"
-                }''',
-                'mapping': {
-                    'instructor': 'Q1',
-                    'course_number': 'Q2',
-                    'semester': 'Q3',
-                    'students': 'Q4'
-                }
-            },
-            # Numerical information
-            'numerical_info': {
-                'prompt': '''Extract the following information. 
-                Respond in JSON format:
-                {
-                    "group_work_time": "percentage (0-100) or empty if not found",
-                    "lecture_time": "percentage (0-100) or empty if not found",
-                    "lecture_duration": "maximum duration in minutes or empty if not found"
-                }''',
-                'mapping': {
-                    'group_work_time': 'Q21',
-                    'lecture_time': 'Q22',
-                    'lecture_duration': 'Q23'
-                }
-            }
-        }
+    prompt = f"""
+    Analyze this course document and answer the following questions. For each question, respond only with 'y', 'n', or the specific requested value (no explanation):
 
-        # Process structured information first
-        for info_type, details in extraction_prompts.items():
-            response = amplify_chat(details['prompt'], content)
+    {content}
+
+    For each question, look for explicit evidence in the document. Do not make assumptions. If you're not certain, respond with 'n'.
+    """
+    with st.spinner("Analyzing uploaded documents..."):
+        for i in range(1, 53):
+            specific_prompt = f"{prompt}\n\nQuestion: {QUESTIONS[f'Q{i}']}"
+            response = amplify_chat(specific_prompt, content)
             if response and 'message' in response:
-                try:
-                    info = json.loads(response['message'])
-                    for key, q_num in details['mapping'].items():
-                        if info.get(key):
-                            st.session_state.answers[q_num] = info[key]
-                            st.session_state.auto_filled.add(q_num)
-                            st.write(f'Found {key}: {info[key]}')
-                except json.JSONDecodeError:
-                    st.error(f'Error parsing {info_type}')
+                st.session_state.answers[f'Q{i}'] = response['message'].strip().lower()
+                # Debug info
+                st.write(f"Q{i}: {response['message'].strip()}")
 
-        # Process yes/no and frequency questions
-        analysis_prompts = {
-            'Q5': 'Is there a list of topics or course schedule?',
-            'Q6': 'Are general learning objectives or skills mentioned?',
-            'Q7': 'Are specific learning objectives for topics mentioned?',
-            'Q8': 'Is there an AI/LLM policy?',
-            'Q9': 'Is an online discussion platform mentioned?',
-            'Q10': 'Is Brightspace or another course website mentioned?',
-            'Q11': 'Are homework solutions mentioned?',
-            'Q12': 'Are problem-solving examples mentioned?',
-            'Q13': 'Are practice tests or past exams mentioned?',
-            'Q14': 'Are videos, animations, or simulations mentioned?',
-            'Q15': 'Are lecture slides, notes, or recordings mentioned?',
-            'Q16': 'Are reading materials or study aids mentioned?',
-            'Q17': 'Are course-related articles or research mentioned?',
-            'Q18': 'Are example student works mentioned?',
-            'Q19': 'Are grading guides or rubrics mentioned?',
-            'Q24': 'Look for frequency of demonstrations/simulations/videos usage. Respond with one of: every class, every week, once in a while, rarely',
-            'Q25': 'Are specific instructions for video viewing and follow-up discussions mentioned?',
-            'Q26': 'Look for frequency of discussing material usefulness. Respond with one of: every class, every week, once in a while, rarely',
-            'Q27': 'Is use of response system for ungraded activities mentioned?',
-            'Q28': 'Is use of response system for graded activities mentioned?',
-            'Q29': 'Are ungraded homework/practice problems mentioned?',
-            'Q30': 'Are graded homework/problems mentioned?',
-            'Q31': 'Are projects/papers with topic choice mentioned?',
-            'Q32': 'Is student collaboration on individual assignments mentioned?',
-            'Q33': 'Are group assignments mentioned?',
-            'Q34': 'Is collecting anonymous feedback during term mentioned?',
-            'Q35': 'Is revision of work based on feedback mentioned?',
-            'Q36': 'Is student access to graded work mentioned?',
-            'Q37': 'Are answer keys mentioned?',
-            'Q38': 'Is AI/LLM usage documentation requirement mentioned?',
-            'Q39': 'Are student progress meetings mentioned?',
-            'Q40': 'Is initial knowledge assessment mentioned?',
-            'Q41': 'Is pre-and-post testing mentioned?',
-            'Q42': 'Is assessment of student interest/feelings mentioned?',
-            'Q43': 'Is student choice in learning/grading mentioned?',
-            'Q44': 'Look for mentions of trying new teaching methods. Respond with: often, sometimes, rarely',
-            'Q45': 'Are TAs or LAs mentioned?',
-            'Q46': 'Is TA/LA training mentioned?',
-            'Q47': 'Are regular TA/LA meetings mentioned?',
-            'Q48': 'Is use of other instructors\' materials mentioned?',
-            'Q49': 'Is material sharing among instructors mentioned?',
-            'Q50': 'Is discussion with colleagues about teaching mentioned?',
-            'Q51': 'Are teaching workshops or articles mentioned?',
-            'Q52': 'Is observation of other instructors\' classes mentioned?'
-        }
-
-        for q_key, prompt in analysis_prompts.items():
-            response = amplify_chat(prompt, content)
-            if response and 'message' in response:
-                answer = response['message'].strip().lower()
-                valid_answer = False
-                
-                if q_key in ['Q24', 'Q26']:  # Frequency questions
-                    valid_options = ['every class', 'every week', 'once in a while', 'rarely']
-                    if answer in valid_options:
-                        valid_answer = True
-                elif q_key == 'Q44':  # Often/sometimes/rarely
-                    valid_options = ['often', 'sometimes', 'rarely']
-                    if answer in valid_options:
-                        valid_answer = True
-                else:  # Yes/no questions
-                    if answer in ['y', 'n']:
-                        valid_answer = True
-                
-                if valid_answer:
-                    st.session_state.answers[q_key] = answer
-                    st.session_state.auto_filled.add(q_key)
-                    st.write(f'Found answer for {q_key}: {answer}')
-
-        # Show summary of what was found
-        num_found = len(st.session_state.auto_filled)
-        if num_found > 0:
-            st.success(f'Successfully pre-filled {num_found} answers from your document. Please review and modify if needed.')
-        else:
-            st.warning('Could not automatically extract any answers from the document. Please fill in the questions manually.')
-
-def save_response(answers):
-    """Save answers to Streamlit's built-in storage"""
+def save_to_google_sheets(answers):
+    """Save answers to Google Sheets"""
     try:
-        # Create a record with timestamp
-        from datetime import datetime
-        record = {
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            **answers  # Include all answers
-        }
+        credentials = service_account.Credentials.from_service_account_info(
+            json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"]),
+            scopes=['https://www.googleapis.com/auth/spreadsheets']
+        )
+        client = gspread.authorize(credentials)
+        sheet = client.open_by_url(
+            "https://docs.google.com/spreadsheets/d/1SaIoxcZ5AmMl0NiTKyGvG247RcKjJYoJ9QuUgalbSSQ/edit?gid=0"
+        ).sheet1
         
-        # Get existing responses or initialize empty list
-        if 'stored_responses' not in st.session_state:
-            st.session_state.stored_responses = []
-        
-        # Add new response
-        st.session_state.stored_responses.append(record)
-        
+        row = [answers.get(f'Q{i}', '') for i in range(1, 53)]
+        sheet.append_row(row)
         return True
     except Exception as e:
-        st.error(f'Error saving response: {str(e)}')
+        st.error(f"Error saving to Google Sheets: {str(e)}")
         return False
-    
-def main():
-    sections = {
-        'I: Course Details': range(1, 5),
-        'II: Information Provided to Students': range(5, 9),
-        'III: Supporting Materials': range(9, 20),
-        'IV: In-Class Features': range(20, 29),
-        'V: Assignments': range(29, 34),
-        'VI: Feedback and Testing': range(34, 40),
-        'VII: Other': range(40, 45),
-        'VIII: TAs and LAs': range(45, 48),
-        'IX: Collaboration': range(48, 53)
-    }
 
+# Main app flow
+def main():
     # Welcome screen and file upload
     if st.session_state.current_step == 'welcome':
-        st.title('Psychology Department Teaching Inventory')
+        st.title("Psychology Department Teaching Inventory")
         st.write("""
         The full inventory has several questions but I want to help you answer them as fast as possible. 
         If you have a syllabus for the course, or any other document relevant to your teaching practices 
@@ -422,21 +212,18 @@ def main():
         """)
         
         uploaded_files = st.file_uploader(
-            'Upload your syllabus or other relevant documents', 
+            "Upload your syllabus or other relevant documents", 
             accept_multiple_files=True,
             type=['pdf', 'txt']
         )
         
-        if st.button('Continue'):
+        if st.button("Continue"):
             if uploaded_files:
                 for file in uploaded_files:
-                    if file.type == 'application/pdf':
-                        content = extract_text_from_pdf(file)
-                        if content:
-                            st.session_state.uploaded_files_content += content
+                    if file.type == "application/pdf":
+                        st.session_state.uploaded_files_content += extract_text_from_pdf(file)
                     else:
-                        content = str(file.read(), 'utf-8')
-                        st.session_state.uploaded_files_content += content
+                        st.session_state.uploaded_files_content += str(file.read(), 'utf-8')
                 
                 if st.session_state.uploaded_files_content:
                     analyze_syllabus(st.session_state.uploaded_files_content)
@@ -446,86 +233,100 @@ def main():
 
     # Questions screen
     elif st.session_state.current_step == 'questions':
-        st.title('Course Information')
+        st.title("Course Information")
         
-        # Progress bar
-        total_questions = 52
-        answered_questions = len([k for k in st.session_state.answers.keys() if st.session_state.answers[k] != ''])
-        progress = answered_questions / total_questions
-        st.progress(progress)
-        st.write(f'Progress: {answered_questions}/{total_questions} questions answered')
+        sections = {
+            "I: Course Details": range(1, 5),
+            "II: Information Provided to Students": range(5, 9),
+            "III: Supporting Materials": range(9, 20),
+            "IV: In-Class Features": range(20, 29),
+            "V: Assignments": range(29, 34),
+            "VI: Feedback and Testing": range(34, 40),
+            "VII: Other": range(40, 45),
+            "VIII: TAs and LAs": range(45, 48),
+            "IX: Collaboration": range(48, 53)
+        }
         
         for section, q_range in sections.items():
-            st.header(section)
+            st.header(f"Section {section}")
             for i in q_range:
                 q_key = f'Q{i}'
+                pre_answered = q_key in st.session_state.answers and st.session_state.answers[q_key] != ""
                 
-                # Text input for first four questions
-                if i <= 4:
-                    text_input_field(q_key, QUESTIONS[q_key])
+                if i in [21, 22]:  # Percentage questions
+                    col1, col2 = st.columns([10, 2])
+                    with col1:
+                        if pre_answered:
+                            st.markdown(f'<div style="background-color: #d4edda; padding: 10px; border-radius: 5px;">{QUESTIONS[q_key]}</div>', unsafe_allow_html=True)
+                        else:
+                            st.write(QUESTIONS[q_key])
+                    with col2:
+                        st.session_state.answers[q_key] = st.number_input(
+                            "",
+                            0, 100,
+                            value=int(st.session_state.answers[q_key]) if st.session_state.answers[q_key] else 0,
+                            key=q_key
+                        )
                 
-                # Percentage sliders
-                elif i in [21, 22]:
-                    number_input_field(q_key, QUESTIONS[q_key], 0, 100, 'percentage')
+                elif i == 23:  # Duration question
+                    col1, col2 = st.columns([10, 2])
+                    with col1:
+                        if pre_answered:
+                            st.markdown(f'<div style="background-color: #d4edda; padding: 10px; border-radius: 5px;">{QUESTIONS[q_key]}</div>', unsafe_allow_html=True)
+                        else:
+                            st.write(QUESTIONS[q_key])
+                    with col2:
+                        st.session_state.answers[q_key] = st.number_input(
+                            "",
+                            0, 180,
+                            value=int(st.session_state.answers[q_key]) if st.session_state.answers[q_key] else 0,
+                            key=q_key
+                        )
                 
-                # Duration input
-                elif i == 23:
-                    number_input_field(q_key, QUESTIONS[q_key], 0, 180, 'minutes')
-                
-                # Frequency questions
-                elif i in [24, 26, 27, 28]:
+                elif i in [24, 26, 27, 28]:  # Frequency questions
                     frequency_buttons(
                         q_key,
                         QUESTIONS[q_key],
-                        ['every class', 'every week', 'once in a while', 'rarely']
+                        ['every class', 'every week', 'once in a while', 'rarely'],
+                        pre_answered
                     )
                 
-                # Often/sometimes/rarely question
-                elif i == 44:
+                elif i == 44:  # Often/sometimes/rarely question
                     frequency_buttons(
                         q_key,
                         QUESTIONS[q_key],
-                        ['often', 'sometimes', 'rarely']
+                        ['often', 'sometimes', 'rarely'],
+                        pre_answered
                     )
                 
-                # Yes/No questions for all others
-                else:
-                    yes_no_buttons(q_key, QUESTIONS[q_key])
+                else:  # Yes/No questions
+                    yes_no_buttons(q_key, QUESTIONS[q_key], pre_answered)
             
-            st.markdown('---')
+            st.markdown("---")
 
-        col1, col2 = st.columns([1, 5])
-        with col1:
-            submit_button = st.button('Submit', type='primary')
-        
-        if submit_button:
-    with st.spinner('Saving your responses...'):
-        if save_response(st.session_state.answers):
-            # Save the data to a CSV file
-            if 'stored_responses' in st.session_state:
-                import pandas as pd
-                df = pd.DataFrame(st.session_state.stored_responses)
-                df.to_csv('responses.csv', index=False)
-                st.write("Responses saved to responses.csv")
-
-            feedback_prompt = '''
-            Based on the syllabus content provided, what are the most important items 
-            that could be added to make the syllabus more comprehensive? Focus on items 
-            that weren't found in the current syllabus. Keep the response brief and constructive.
-            '''
-            
-            feedback_response = amplify_chat(feedback_prompt, st.session_state.uploaded_files_content)
-
-            st.success('Thank you for completing the inventory!')
-            if feedback_response and 'message' in feedback_response:
-                st.info(feedback_response['message'])
-
-            # Reset for next use
-            st.session_state.current_step = 'welcome'
-            st.session_state.answers = {}
-            st.session_state.uploaded_files_content = ''
-            st.session_state.auto_filled = set()
-            st.rerun()
+        if st.button("Submit"):
+            if save_to_google_sheets(st.session_state.answers):
+                missing_info = []
+                for q in range(5, 20):
+                    if f'Q{q}' not in st.session_state.uploaded_files_content:
+                        missing_info.append(QUESTIONS[f'Q{q}'])
+                
+                feedback_prompt = f"""
+                Based on the following information that couldn't be found in the syllabus: {missing_info},
+                provide a brief, friendly suggestion about what additional information could be included in 
+                future syllabi. Keep the response under 3 sentences.
+                """
+                
+                feedback_response = amplify_chat(feedback_prompt)
+                
+                st.success("Thank you for completing the inventory!")
+                if feedback_response and 'message' in feedback_response:
+                    st.info(feedback_response['message'])
+                
+                st.session_state.current_step = 'welcome'
+                st.session_state.answers = {}
+                st.session_state.uploaded_files_content = ""
+                st.rerun()
 
 if __name__ == "__main__":
     main()
