@@ -16,19 +16,26 @@ def test_api():
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
-    # Added both required parameters
+    # Modified content structure
     payload = {
         "data": {
             "messages": [
                 {
                     "role": "user",
-                    "content": "Hello, can you hear me?"
+                    "content": {
+                        "type": "text",
+                        "text": "Hello, can you hear me?"
+                    }
                 }
             ],
             "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
             "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"],
             "temperature": 0.7,
-            "max_tokens": 500
+            "max_tokens": 500,
+            "options": {
+                "ragOnly": False,
+                "skipRag": True
+            }
         }
     }
     
@@ -40,22 +47,31 @@ def test_api():
         response = requests.post(url, headers=headers, json=payload)
         
         st.write("Response Status:", response.status_code)
-        if response.status_code != 200:
-            st.write("Response Headers:", dict(response.headers))
-            st.write("Response Content:", response.text)
+        st.write("Raw Response:", response.text)
         
         if response.status_code == 200:
             response_json = response.json()
-            st.write("Success! Response:", response_json)
+            st.write("Parsed Response:", response_json)
             
-            if response_json.get('success') == False:
-                st.error(f"API Error: {response_json.get('message')}")
+            if isinstance(response_json, dict):
+                if response_json.get('success') == False:
+                    st.error(f"API Error: {response_json.get('message')}")
+                else:
+                    st.success("API call successful!")
+                    if 'data' in response_json:
+                        st.write("Response data:", response_json['data'])
+                    else:
+                        st.write("Full response:", response_json)
             else:
-                st.success("API call successful!")
-                st.json(response_json)
+                st.error(f"Unexpected response format: {response_json}")
         
     except Exception as e:
         st.error(f"Error: {str(e)}")
+        st.write("Exception details:", {
+            "type": type(e).__name__,
+            "str": str(e),
+            "repr": repr(e)
+        })
 
 def main():
     st.title("Amplify API Test")
