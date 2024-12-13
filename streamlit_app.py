@@ -498,25 +498,33 @@ def main():
             submit_button = st.button('Submit', type='primary')
         
         if submit_button:
-            with st.spinner('Saving your responses...'):
-                if save_response(st.session_state.answers):
-                    feedback_prompt = '''
-                    Based on the syllabus content provided, what are the most important items 
-                    that could be added to make the syllabus more comprehensive? Focus on items 
-                    that weren't found in the current syllabus. Keep the response brief and constructive.
-                    '''
-                    
-                    feedback_response = amplify_chat(feedback_prompt, st.session_state.uploaded_files_content)
-                    
-                    st.success('Thank you for completing the inventory!')
-                    if feedback_response and 'message' in feedback_response:
-                        st.info(feedback_response['message'])
-                    
-                    # Reset for next use
-                    st.session_state.current_step = 'welcome'
-                    st.session_state.answers = {}
-                    st.session_state.uploaded_files_content = ''
-                    st.session_state.auto_filled = set()
-                    st.rerun()
+    with st.spinner('Saving your responses...'):
+        if save_response(st.session_state.answers):
+            # Save the data to a CSV file
+            if 'stored_responses' in st.session_state:
+                import pandas as pd
+                df = pd.DataFrame(st.session_state.stored_responses)
+                df.to_csv('responses.csv', index=False)
+                st.write("Responses saved to responses.csv")
+
+            feedback_prompt = '''
+            Based on the syllabus content provided, what are the most important items 
+            that could be added to make the syllabus more comprehensive? Focus on items 
+            that weren't found in the current syllabus. Keep the response brief and constructive.
+            '''
+            
+            feedback_response = amplify_chat(feedback_prompt, st.session_state.uploaded_files_content)
+
+            st.success('Thank you for completing the inventory!')
+            if feedback_response and 'message' in feedback_response:
+                st.info(feedback_response['message'])
+
+            # Reset for next use
+            st.session_state.current_step = 'welcome'
+            st.session_state.answers = {}
+            st.session_state.uploaded_files_content = ''
+            st.session_state.auto_filled = set()
+            st.rerun()
+
 if __name__ == "__main__":
     main()
