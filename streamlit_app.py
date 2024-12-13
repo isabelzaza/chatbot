@@ -11,14 +11,62 @@ import io
 st.set_page_config(page_title="Psychology Dept. Teaching Inventory", layout="wide")
 
 # Define questions dictionary
+# At the top of your file, replace the existing QUESTIONS dictionary with this complete one:
+
 QUESTIONS = {
     "Q1": "Instructor Name:",
     "Q2": "Course Number:",
     "Q3": "Semester and Year:",
     "Q4": "Number of Students:",
-    # [Rest of the questions dictionary remains the same]
+    "Q5": "Do you give students a list of the topics that will be covered in the course?",
+    "Q6": "Do you provide a list of general skills or abilities students should develop (like critical thinking)?",
+    "Q7": "Do you list specific skills or abilities students should learn from specific topics (e.g., from a given activity or lecture)?",
+    "Q8": "Do you articulate a policy regarding permissible and impermissible use of AI tools/LLMs for this class, beyond saying all use of AI tools in assignments is banned?",
+    "Q9": "Do you use a platform for class discussions online?",
+    "Q10": "Do you use a course website like Brightspace to share materials?",
+    "Q11": "Do you provide solutions to homework assignments?",
+    "Q12": "Do you share examples of how to solve problems (e.g., step-by-step guides)?",
+    "Q13": "Do you give practice tests or past exam papers?",
+    "Q14": "Do you post videos, animations, or simulations to explain course content?",
+    "Q15": "Do you share your lecture slides, notes or recording of lectures with students (either before or after class)?",
+    "Q16": "Do you provide other materials, like reading or study aids?",
+    "Q17": "Do you give students access to articles or research related to the course?",
+    "Q18": "Do you share examples of excellent student papers or projects?",
+    "Q19": "Do you provide grading guides/ rubrics to explain how assignments will be marked?",
+    "Q20": "Do you regularly use a strategy to elicit student questions in class -beyond saying are there any questions and moving on?",
+    "Q21": "In a typical class, what is the proportion of time for which students work in small groups? (percentage, for 0 to 100)",
+    "Q22": "In a typical class, what is the proportion of time for which you lecture? (percentage, 0 to 100)",
+    "Q23": "What is the longest duration you lecture before breaking into an entirely different activity (not just stopping to ask a question or invite questions)? (number of min)",
+    "Q24": "How often do you use demonstrations, simulations, or videos?",
+    "Q25": "If you show a video, do you provide students with detailed instructions of what to look for in the video, and follow-up with a discussion?",
+    "Q26": "How often do you talk about why the material might be useful or interesting from a student's point of view?",
+    "Q27": "Do you use a response system (e.g., Top hat) for ungraded activities?",
+    "Q28": "Do you use a response system (e.g., Top hat) for graded activities?",
+    "Q29": "Do you give homework or practice problems that do not count towards grade?",
+    "Q30": "Do you give homework or problems that count towards grade?",
+    "Q31": "Do you assign a project or paper where students have some choice about the topic?",
+    "Q32": "Do you encourage students to work together on individual assignments?",
+    "Q33": "Do you give group assignments?",
+    "Q34": "Do you ask students for anonymous feedback outside of end of term course reviews?",
+    "Q35": "Do you allow students to revise their work based on feedback?",
+    "Q36": "Do students have access to their graded exams and other assignments?",
+    "Q37": "Do you share answer keys for graded exams and other assignments?",
+    "Q38": "Do you require students to include a statement regarding their use of AI tools/LLMs on submitted assignments, or submit some kind of record to delineate which parts of the assignment represent their own intellectual contributions versus those of generative AI?",
+    "Q39": "Do you encourage students to meet with you to discuss their progress?",
+    "Q40": "Do you give a test at the beginning of the course to see what students already know?",
+    "Q41": "Do you use a pre-and-post test to measure how much students learn in the course?",
+    "Q42": "Do you ask students about their interest or feelings about the subject before and after the course?",
+    "Q43": "Do you give students some control over their learning, like choosing topics or how they will be graded?",
+    "Q44": "Do you try new teaching methods or materials and measure how well they work?",
+    "Q45": "Do you have graduate TAs or undergraduate LAs for this course?",
+    "Q46": "Do you provide TAs/LAs with some training on teaching methods?",
+    "Q47": "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing?",
+    "Q48": "Do you use teaching materials from other instructors?",
+    "Q49": "Do you use some of the same teaching materials as other instructors of the same course in your department?",
+    "Q50": "Do you talk with colleagues about how to teach this course?",
+    "Q51": "Relevant to this course, did you read articles or attend workshops to improve your teaching?",
+    "Q52": "Have you observed another instructor's class to get ideas?"
 }
-
 # Initialize session state variables
 if 'current_step' not in st.session_state:
     st.session_state.current_step = 'welcome'
