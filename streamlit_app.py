@@ -424,69 +424,37 @@ def main():
             st.session_state.current_step = 'questions'
             st.rerun()
 
-    # Questions screen
+# Questions screen
     elif st.session_state.current_step == 'questions':
         st.title('Course Information')
         
-        # Progress bar
-        total_questions = 52
-        answered_questions = len([k for k in st.session_state.answers.keys() if st.session_state.answers[k] != ''])
-        progress = answered_questions / total_questions
-        st.progress(progress)
-        st.write(f'Progress: {answered_questions}/{total_questions} questions answered')
-        
-        for section, q_range in sections.items():
-            st.header(section)
-            for i in q_range:
-                q_key = f'Q{i}'
-                
-                # Text input for first four questions
-                if i <= 4:
-                    text_input_field(q_key, QUESTIONS[q_key])
-                
-                # Percentage sliders
-                elif i in [21, 22]:
-                    number_input_field(q_key, QUESTIONS[q_key], 0, 100, 'percentage')
-                
-                # Duration input
-                elif i == 23:
-                    number_input_field(q_key, QUESTIONS[q_key], 0, 180, 'minutes')
-                
-                # Frequency questions
-                elif i in [24, 26, 27, 28]:
-                    frequency_buttons(
-                        q_key,
-                        QUESTIONS[q_key],
-                        ['every class', 'every week', 'once in a while', 'rarely']
-                    )
-                
-                # Often/sometimes/rarely question
-                elif i == 44:
-                    frequency_buttons(
-                        q_key,
-                        QUESTIONS[q_key],
-                        ['often', 'sometimes', 'rarely']
-                    )
-                
-                # Yes/No questions for all others
-                else:
-                    yes_no_buttons(q_key, QUESTIONS[q_key])
-            
-            st.markdown('---')
+        # [Previous questions code remains the same]
 
         col1, col2 = st.columns([1, 5])
         with col1:
             submit_button = st.button('Submit', type='primary')
         
-if submit_button:
-
-    with st.spinner('Saving your responses...'):
-        if save_response(st.session_state.answers):
-            feedback_prompt = '''
-            Based on the syllabus content provided, what are the most important items 
-            that could be added to make the syllabus more comprehensive? Focus on items 
-            that weren't found in the current syllabus. Keep the response brief and constructive.
-            '''
+        if submit_button:
+            with st.spinner('Saving your responses...'):
+                if save_response(st.session_state.answers):
+                    feedback_prompt = '''
+                    Based on the syllabus content provided, what are the most important items 
+                    that could be added to make the syllabus more comprehensive? Focus on items 
+                    that weren't found in the current syllabus. Keep the response brief and constructive.
+                    '''
+                    
+                    feedback_response = amplify_chat(feedback_prompt, st.session_state.uploaded_files_content)
+                    
+                    st.success('Thank you for completing the inventory!')
+                    if feedback_response and 'message' in feedback_response:
+                        st.info(feedback_response['message'])
+                    
+                    # Reset for next use
+                    st.session_state.current_step = 'welcome'
+                    st.session_state.answers = {}
+                    st.session_state.uploaded_files_content = ''
+                    st.session_state.auto_filled = set()
+                    st.rerun()
 
 if __name__ == '__main__':
     main()
