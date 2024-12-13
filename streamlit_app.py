@@ -478,7 +478,8 @@ def main():
         with col1:
             submit_button = st.button('Submit', type='primary')
         
-        if submit_button:
+if submit_button:
+
     with st.spinner('Saving your responses...'):
         if save_response(st.session_state.answers):
             feedback_prompt = '''
