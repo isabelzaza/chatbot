@@ -1,40 +1,37 @@
 import streamlit as st
 import requests
 import json
-from PyPDF2 import PdfReader
-import io
 
 # Configure page
 st.set_page_config(page_title="API Test", layout="wide")
 
 def test_api():
     """Simple test of Amplify API"""
-    # Define your API key and assistant ID
-    AMPLIFY_API_KEY = st.secrets["AMPLIFY_API_KEY"]
-    AMPLIFY_ASSISTANT_ID = st.secrets["AMPLIFY_ASSISTANT_ID"]
-    
     url = "https://prod-api.vanderbilt.ai/chat"
     
-    # Define the headers exactly as shown
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {AMPLIFY_API_KEY}"
+        "Authorization": f"Bearer {st.secrets['AMPLIFY_API_KEY']}"
     }
     
-    # Define the payload exactly as shown
+    # Following the exact format from documentation
     payload = {
         "data": {
+            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "temperature": 0.7,
+            "max_tokens": 150,
+            "dataSources": [],  # Empty array as we're not using any data sources
             "messages": [
                 {
                     "role": "user",
                     "content": "Hello, can you hear me?"
                 }
             ],
-            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-            "assistant_id": AMPLIFY_ASSISTANT_ID,
-            "temperature": 0.7,
-            "max_tokens": 500,
-            "system_message": "You are a helpful assistant."
+            "options": {
+                "ragOnly": False,
+                "skipRag": True,
+                "assistantId": st.secrets["AMPLIFY_ASSISTANT_ID"]
+            }
         }
     }
     
@@ -53,25 +50,22 @@ def test_api():
                 response_json = response.json()
                 st.write("Parsed Response:", response_json)
                 
-                if isinstance(response_json, dict):
-                    if response_json.get('success') == False:
-                        st.error(f"API Error: {response_json.get('message')}")
-                    else:
-                        st.success("API call successful!")
-                        st.write("Full response:", response_json)
+                if response_json.get('success') is True:
+                    st.success("API call successful!")
+                    st.write("Response data:", response_json.get('data', ''))
                 else:
-                    st.error(f"Unexpected response format: {response_json}")
+                    st.error(f"API Error: {response_json}")
                     
             except json.JSONDecodeError as e:
                 st.error(f"Failed to parse response as JSON: {e}")
                 st.write("Raw response was:", response.text)
-        
+            
     except Exception as e:
         st.error(f"Error: {str(e)}")
         st.write("Exception details:", {
             "type": type(e).__name__,
-            "str": str(e),
-            "repr": repr(e)
+            "args": e.args,
+            "str": str(e)
         })
 
 def main():
