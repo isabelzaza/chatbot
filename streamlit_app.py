@@ -164,7 +164,6 @@ def extract_text_from_pdf(pdf_file):
         return ""
 
 def analyze_syllabus(content):
-    """Analyze syllabus content to extract answers"""
     prompt = f"""
     Analyze this course document and answer the following questions. For each question, respond only with 'y', 'n', or the specific requested value (no explanation):
 
@@ -180,7 +179,7 @@ def analyze_syllabus(content):
                 st.session_state.answers[f'Q{i}'] = response['message'].strip().lower()
                 # Debug info
                 st.write(f"Q{i}: {response['message'].strip()}")
-
+                
 def save_to_google_sheets(answers):
     """Save answers to Google Sheets"""
     try:
