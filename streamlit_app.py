@@ -14,18 +14,16 @@ def test_api():
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
-    # Simplified payload structure
+    # Even simpler payload with just messages
     payload = {
-        "data": {
-            "message": {
+        "messages": [
+            {
                 "role": "user",
                 "content": "Hello, can you hear me?"
-            },
-            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-            "temperature": 0.7,
-            "max_tokens": 500,
-            "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"]
-        }
+            }
+        ],
+        "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+        "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"]
     }
     
     try:
@@ -54,13 +52,8 @@ def test_api():
 
 def main():
     st.title("Amplify API Test")
-    
-    # Display the secrets we're using (without showing actual values)
     st.write("Available secrets:", list(st.secrets.keys()))
-    
-    # Also display the API key length to verify it's loaded correctly
-    if "AMPLIFY_API_KEY" in st.secrets:
-        st.write("API Key length:", len(st.secrets["AMPLIFY_API_KEY"]))
+    st.write("API Key length:", len(st.secrets["AMPLIFY_API_KEY"]))
     
     if st.button("Test API Connection"):
         test_api()
