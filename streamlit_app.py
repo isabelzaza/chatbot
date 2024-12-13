@@ -63,10 +63,8 @@ def amplify_chat(prompt, content=""):
             json=payload
         )
         
-        # Debug: Print response status and content
-        st.write("Response status:", response.status_code)
-        if response.status_code != 200:
-            st.write("Response content:", response.text)
+        # Debug: Print full response
+        st.write("Full response:", response.json())
         
         response.raise_for_status()
         return response.json()
@@ -87,10 +85,32 @@ def analyze_syllabus(content):
             specific_prompt = f"{prompt}\n\nQuestion: {QUESTIONS[f'Q{i}']}"
             response = amplify_chat(specific_prompt, content)
             
-            if response and 'message' in response:
-                answer = response['message'].strip()
+            # Debug: Print response structure
+            st.write(f"Response for Q{i}:", response)
+            
+            try:
+                # Try different possible response structures
+                if response and isinstance(response, dict):
+                    if 'data' in response and 'content' in response['data']:
+                        answer = response['data']['content'].strip()
+                    elif 'data' in response and 'message' in response['data']:
+                        answer = response['data']['message'].strip()
+                    elif 'message' in response:
+                        answer = response['message'].strip()
+                    elif 'content' in response:
+                        answer = response['content'].strip()
+                    else:
+                        answer = "Unable to parse response"
+                        st.error(f"Unexpected response structure for Q{i}: {response}")
+                else:
+                    answer = "Invalid response"
+                
                 answers[f'Q{i}'] = answer
                 st.write(f"{QUESTIONS[f'Q{i}']} {answer}")
+                
+            except Exception as e:
+                st.error(f"Error processing response for Q{i}: {str(e)}")
+                st.write(f"Response was: {response}")
 
 def main():
     st.title("Psychology Department Teaching Inventory - Simple Version")
