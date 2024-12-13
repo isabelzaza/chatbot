@@ -200,6 +200,7 @@ def number_input_field(key, question, min_val, max_val, unit=''):
         st.session_state.answers[key] = str(new_val)
         if key in st.session_state.auto_filled:
             st.session_state.auto_filled.remove(key)
+            
 def amplify_chat(prompt, content=''):
     """Make a call to Amplify API with proper error handling"""
     url = 'https://prod-api.vanderbilt.ai/chat'
