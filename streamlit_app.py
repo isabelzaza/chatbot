@@ -443,11 +443,8 @@ def main():
             st.session_state.current_step = 'questions'
             st.rerun()
 
-# Questions screen
+    # Questions screen
     elif st.session_state.current_step == 'questions':
-        st.title('Course Information')
-        
-        elif st.session_state.current_step == 'questions':
         st.title('Course Information')
         
         # Progress bar
@@ -521,6 +518,3 @@ def main():
                     st.session_state.uploaded_files_content = ''
                     st.session_state.auto_filled = set()
                     st.rerun()
-
-if __name__ == '__main__':
-    main()
