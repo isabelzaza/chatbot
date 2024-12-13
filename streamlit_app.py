@@ -145,11 +145,18 @@ def frequency_buttons(key, question, options):
     
     display_question(key, question, pre_answered)
     
-    cols = st.columns(len(options))
+    # Create a container to hold the buttons close together
+    button_container = st.container()
+    
+    # Calculate columns - we want small spaces between buttons
+    num_options = len(options)
+    # Create 2*num_options-1 columns to add spacing between buttons
+    cols = button_container.columns([1 if i % 2 == 0 else 0.2 for i in range(2*num_options-1)])
     current_value = st.session_state.answers.get(key, '')
     
-    for option, col in zip(options, cols):
-        with col:
+    # Use only the even-numbered columns (odd-numbered are spacers)
+    for i, option in enumerate(options):
+        with cols[i*2]:  # This skips the spacing columns
             if st.button(
                 option,
                 key=f'{key}_{option}',
@@ -159,7 +166,7 @@ def frequency_buttons(key, question, options):
                 if key in st.session_state.auto_filled:
                     st.session_state.auto_filled.remove(key)
                 st.rerun()
-
+                
 def number_input_field(key, question, min_val, max_val, unit=''):
     """Create a number input field or slider with auto-fill indication"""
     pre_answered = key in st.session_state.auto_filled
