@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 import json
+from PyPDF2 import PdfReader
+import io
 
 # Configure page
 st.set_page_config(page_title="API Test", layout="wide")
@@ -14,16 +16,18 @@ def test_api():
         'Authorization': f'Bearer {st.secrets["AMPLIFY_API_KEY"]}'
     }
     
-    # Even simpler payload with just messages
+    # Using the exact format provided by Amplify AI
     payload = {
-        "messages": [
-            {
-                "role": "user",
-                "content": "Hello, can you hear me?"
-            }
-        ],
-        "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"]
+        "data": {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Hello, can you hear me?"
+                }
+            ],
+            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"]
+        }
     }
     
     try:
