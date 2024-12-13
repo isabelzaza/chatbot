@@ -38,33 +38,37 @@ def amplify_chat(prompt, content=""):
     }
     
     payload = {
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are an assistant analyzing course documents."
-            },
-            {
-                "role": "user",
-                "content": f"Context: {content}\n\nQuestion: {prompt}"
-            }
-        ],
-        "model": "gpt-4",
-        "temperature": 0.7,
-        "max_tokens": 500,
-        "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"]
+        "data": {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an assistant analyzing course documents."
+                },
+                {
+                    "role": "user",
+                    "content": f"Context: {content}\n\nQuestion: {prompt}"
+                }
+            ],
+            "model": "gpt-4",
+            "temperature": 0.7,
+            "max_tokens": 500,
+            "assistant_id": st.secrets["AMPLIFY_ASSISTANT_ID"]
+        }
     }
     
     try:
+        # Debug: Print the payload structure
+        st.write("Sending payload:", json.dumps(payload, indent=2))
+        
         response = requests.post(
             url, 
             headers=headers, 
             json=payload
         )
         
-        # Debug: Print response status
+        # Debug: Print response status and content
         st.write("Response status:", response.status_code)
-        if response.status_code != 200:
-            st.write("Response content:", response.text)
+        st.write("Response content:", response.text)
         
         response.raise_for_status()
         return response.json()
