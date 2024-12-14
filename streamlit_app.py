@@ -5,7 +5,7 @@ import json
 # Configure page
 st.set_page_config(page_title="API Test", layout="wide")
 
-def test_api(user_message="Tell me about Vanderbilt University", selected_model="anthropic.claude-3-5-sonnet-20240620-v1:0"):
+def test_api(user_message="Tell me about vanderbilt university", selected_model="anthropic.claude-3-5-sonnet-20240620-v1:0"):
     """Simple test of Amplify API"""
     url = "https://prod-api.vanderbilt.ai/chat"
     
@@ -14,8 +14,10 @@ def test_api(user_message="Tell me about Vanderbilt University", selected_model=
         "Authorization": f"Bearer {st.secrets['AMPLIFY_API_KEY']}"
     }
     
+    # Updated payload with correct assistant ID format and data source options
     payload = {
         "data": {
+            "model": selected_model,
             "messages": [
                 {
                     "role": "user",
@@ -28,14 +30,17 @@ def test_api(user_message="Tell me about Vanderbilt University", selected_model=
             "options": {
                 "ragOnly": False,
                 "skipRag": True,
-                "assistantId": st.secrets["AMPLIFY_ASSISTANT_ID"],
-                "model": selected_model,
-                "prompt": user_message
+                "assistantId": "astp/a55270be-f801-4a28-afc0-38ba9290ef10",  # Updated format
+                "dataSourceOptions": {
+                    "includeAttachedDocumentsInPrompt": True,
+                    "includeConversationDocumentsInRAG": True,
+                    "allowAssistantToCreateArtifacts": True
+                }
             }
         }
     }
     
-    st.write("Assistant ID being used:", st.secrets["AMPLIFY_ASSISTANT_ID"])
+    st.write("Assistant ID being used:", payload["data"]["options"]["assistantId"])
     
     try:
         st.write("Making API call...")
@@ -94,7 +99,7 @@ def main():
     
     user_message = st.text_input(
         "Enter your message (optional):", 
-        "Tell me about Vanderbilt University"
+        "Tell me about vanderbilt university"
     )
     
     if st.button("Test API Connection"):
@@ -102,10 +107,10 @@ def main():
         
     st.write("""
     Notes:
-    - Model is now inside the options object
-    - Keeping assistantId in options
-    - Simplified payload structure
-    - Still using prompt in options
+    - Updated assistant ID format
+    - Added data source options from UI
+    - Included feature options
+    - Removed prompt from options
     """)
 
 if __name__ == "__main__":
