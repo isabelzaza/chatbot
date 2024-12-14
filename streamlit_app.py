@@ -5,7 +5,7 @@ import json
 # Configure page
 st.set_page_config(page_title="API Test", layout="wide")
 
-def test_api(user_message="Tell me about vanderbilt university", selected_model="anthropic.claude-3-5-sonnet-20240620-v1:0"):
+def test_api(user_message="Tell me about Vanderbilt University", selected_model="anthropic.claude-3-5-sonnet-20240620-v1:0"):
     """Simple test of Amplify API"""
     url = "https://prod-api.vanderbilt.ai/chat"
     
@@ -14,10 +14,8 @@ def test_api(user_message="Tell me about vanderbilt university", selected_model=
         "Authorization": f"Bearer {st.secrets['AMPLIFY_API_KEY']}"
     }
     
-    # Move model to top level of data object
     payload = {
         "data": {
-            "model": selected_model,  # Moved to top level
             "messages": [
                 {
                     "role": "user",
@@ -31,6 +29,7 @@ def test_api(user_message="Tell me about vanderbilt university", selected_model=
                 "ragOnly": False,
                 "skipRag": True,
                 "assistantId": st.secrets["AMPLIFY_ASSISTANT_ID"],
+                "model": selected_model,
                 "prompt": user_message
             }
         }
@@ -95,7 +94,7 @@ def main():
     
     user_message = st.text_input(
         "Enter your message (optional):", 
-        "Tell me about vanderbilt university"
+        "Tell me about Vanderbilt University"
     )
     
     if st.button("Test API Connection"):
@@ -103,7 +102,7 @@ def main():
         
     st.write("""
     Notes:
-    - Moved 'model' to top level of data object
+    - Model is now inside the options object
     - Keeping assistantId in options
     - Simplified payload structure
     - Still using prompt in options
