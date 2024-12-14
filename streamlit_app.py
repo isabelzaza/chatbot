@@ -5,16 +5,39 @@ import json
 # Configure page
 st.set_page_config(page_title="API Test", layout="wide")
 
-def test_api(user_message="Tell me about vanderbilt university", selected_model="anthropic.claude-3-5-sonnet-20240620-v1:0"):
-    """Simple test of Amplify API"""
-    url = "https://prod-api.vanderbilt.ai/chat"
+def get_assistant_info():
+    """Get information about available assistants"""
+    url = "https://prod-api.vanderbilt.ai/assistant/list"
     
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {st.secrets['AMPLIFY_API_KEY']}"
     }
     
-    # Updated payload with correct assistant ID format and data source options
+    try:
+        response = requests.get(url, headers=headers)
+        st.write("Assistant List Response Status:", response.status_code)
+        st.write("Assistant List Response:", response.text)
+        return response.json() if response.status_code == 200 else None
+    except Exception as e:
+        st.error(f"Error getting assistant info: {str(e)}")
+        return None
+
+def test_api(user_message="Tell me about vanderbilt university", selected_model="anthropic.claude-3-5-sonnet-20240620-v1:0"):
+    """Simple test of Amplify API"""
+    url = "https://prod-api.vanderbilt.ai/chat"
+    
+    # First, get assistant info
+    st.write("Checking assistant configuration...")
+    assistant_info = get_assistant_info()
+    if assistant_info:
+        st.write("Found assistant information:", assistant_info)
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {st.secrets['AMPLIFY_API_KEY']}"
+    }
+    
     payload = {
         "data": {
             "model": selected_model,
@@ -30,7 +53,7 @@ def test_api(user_message="Tell me about vanderbilt university", selected_model=
             "options": {
                 "ragOnly": False,
                 "skipRag": True,
-                "assistantId": "astp/a55270be-f801-4a28-afc0-38ba9290ef10",  # Updated format
+                "assistantId": "astp/a55270be-f801-4a28-afc0-38ba9290ef10",
                 "dataSourceOptions": {
                     "includeAttachedDocumentsInPrompt": True,
                     "includeConversationDocumentsInRAG": True,
@@ -43,7 +66,7 @@ def test_api(user_message="Tell me about vanderbilt university", selected_model=
     st.write("Assistant ID being used:", payload["data"]["options"]["assistantId"])
     
     try:
-        st.write("Making API call...")
+        st.write("Making chat API call...")
         st.write("Headers:", {k:v for k,v in headers.items() if k != 'Authorization'})
         st.write("Payload:", json.dumps(payload, indent=2))
         
@@ -64,7 +87,14 @@ def test_api(user_message="Tell me about vanderbilt university", selected_model=
                         st.success("Got response data!")
                         st.write("Response:", response_data)
                     else:
-                        st.warning("No data in response.")
+                        st.warning("""
+                        No data in response. Possible issues:
+                        1. Assistant might need configuration
+                        2. Assistant might not have correct permissions
+                        3. Model might not be enabled for this assistant
+                        
+                        Try checking the assistant configuration in the UI or creating a new assistant.
+                        """)
                         st.write("Full response object:", response_json)
                 else:
                     st.error(f"API Error: {response_json.get('message', 'Unknown error')}")
@@ -107,10 +137,9 @@ def main():
         
     st.write("""
     Notes:
-    - Updated assistant ID format
-    - Added data source options from UI
-    - Included feature options
-    - Removed prompt from options
+    - Added assistant list check
+    - Verifying assistant configuration
+    - Will show assistant details if found
     """)
 
 if __name__ == "__main__":
