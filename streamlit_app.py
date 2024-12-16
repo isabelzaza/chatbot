@@ -73,6 +73,27 @@ SECTIONS = {
     "Section VIII: Teaching Assistants": list(f"Q{i}" for i in range(45, 48)),
     "Section IX: Collaboration": list(f"Q{i}" for i in range(48, 53))
 }
+# LLM Prompt Template
+INVENTORY_PROMPT = """
+Based on the provided document, help answer questions from the Vanderbilt Psychology Teaching Inventory. 
+Act like an expert in college teaching, someone used to looking at syllabi for courses.
+Based on the provided document, help answer questions from the Vanderbilt Psychology Teaching Inventory. 
+Keep in mind that some questions, for instance about things that happen in class, 
+will not be discussed on the syllabus.
+For each answer you can determine from the document, provide:
+1. The question number (Q1-Q52)
+2. The question text
+3. Your answer with the appropriate format (yes/no, number, text, etc.)
+4. The relevant text from the document that led to your answer
+
+Format your response as:
+Q[number]: [Question text]
+Answer: [Your answer]
+Evidence: [Supporting text from document]
+
+Document content:
+{document_content}
+"""
 
 # File Processing Functions
 def read_pdf(file):
@@ -108,6 +129,39 @@ def process_uploaded_file(uploaded_file):
     except Exception as e:
         st.error(f"Error processing file: {str(e)}")
         return None
+
+def save_to_google_sheets(answers):
+    """Save answers to Google Sheets"""
+    try:
+        # Get credentials from Streamlit secrets
+        credentials = {
+            "type": st.secrets["gcp_service_account"]["type"],
+            "project_id": st.secrets["gcp_service_account"]["project_id"],
+            "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
+            "private_key": st.secrets["gcp_service_account"]["private_key"],
+            "client_email": st.secrets["gcp_service_account"]["client_email"],
+            "client_id": st.secrets["gcp_service_account"]["client_id"],
+            "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
+            "token_uri": st.secrets["gcp_service_account"]["token_uri"],
+            "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
+            "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
+        }
+        
+        gc = gspread.service_account_from_dict(credentials)
+        sheet = gc.open("My_GoogleSheet").sheet1
+        
+        # Create row of answers in correct order
+        row = []
+        for i in range(1, 53):  # Questions 1-52
+            q_id = f"Q{i}"
+            row.append(answers.get(q_id, ""))
+            
+        # Append row to sheet
+        sheet.append_row(row)
+        return True
+    except Exception as e:
+        st.error(f"Error saving to Google Sheets: {str(e)}")
+        return False
 
 # LLM Response Parsing
 def parse_llm_response(response_text):
@@ -188,28 +242,7 @@ def make_llm_request(file_content):
     # Create a formatted string of all questions
     questions_text = "\n".join([f"{q}: {info['question']}" for q, info in INVENTORY_QUESTIONS.items()])
 
-    prompt = f"""
-    Based on the provided document, help answer ONLY questions where you find EXPLICIT evidence in the text.
-    - Do not make assumptions or infer answers from general context
-    - Only answer if the information is directly stated
-    - For teaching practice questions (like classroom strategies), only answer if specifically described
-    - Ignore vague or indirect references
-    - If in doubt, do not provide an answer
-
-    For each question you can answer based on the document, provide:
-    1. The question number (Q1-Q52)
-    2. The question text
-    3. Your answer with the appropriate format (yes/no, number, text, etc.)
-    4. The exact quote from the document that supports your answer
-    
-    Format your response as:
-    Q[number]: [Question text]
-    Answer: [Your answer]
-    Evidence: [Quote from document]
-    
-    Document content:
-    {file_content}
-    """
+    prompt = INVENTORY_PROMPT.format(document_content=file_content)
 
     messages = [
         {
@@ -328,8 +361,8 @@ def display_section(section_name, question_ids, current_answers):
         # Add evidence expander in the third column
         with col3:
             if current_value and 'evidence' in st.session_state and q_id in st.session_state.evidence:
-                with st.expander("Show Evidence"):
-                    st.markdown(f"*Quote from document:*")
+                with st.expander("Why I selected this?"):
+                    st.markdown(f"*Based on this text from your document:*")
                     st.write(st.session_state.evidence[q_id])
     
     return section_answers, all_answered
@@ -371,10 +404,14 @@ def process_sections(analyzed_answers):
         elif all_answered:
             if st.button("Complete"):
                 st.session_state.all_answers.update(section_answers)
-                st.success("All sections completed!")
-                # Here we would add code to save to Excel
+                if save_to_google_sheets(st.session_state.all_answers):
+                    st.success("All sections completed and saved to Google Sheets!")
+                else:
+                    st.success("All sections completed!")
+                    st.warning("Could not save to Google Sheets")
 
 def main():
+    st.set_page_config(layout="wide")
     st.title("Vanderbilt Psychology Teaching Inventory Helper")
     
     st.write("""
