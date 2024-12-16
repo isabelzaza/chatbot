@@ -75,7 +75,9 @@ SECTIONS = {
 }
 # LLM Prompt Template
 INVENTORY_PROMPT = """
-Based on the provided document, help answer questions from the Vanderbilt Psychology Teaching Inventory. 
+Based on the provided document(s), help answer questions from the Vanderbilt Psychology Teaching Inventory. 
+Consider ALL provided documents together when determining answers.
+
 Be precise and only extract information that EXACTLY matches what is asked for. For example:
 - For instructor name, look for lines starting with "Instructor:" or similar
 - For course number, look for exact course codes (e.g., PSY followed by numbers)
@@ -113,10 +115,8 @@ Answer: [Your answer]
 Evidence: [Quote "exactly as it appears" in document] (From Document 1/2)
 
 The documents:
-=== DOCUMENT 1 ===
-{document1_content}
+{documents}
 
-{document2_section}
 
 """
 
@@ -271,13 +271,13 @@ def make_llm_request(file_content1, file_content2=None):
     }
 
     # Prepare document content
-    document_text = "=== DOCUMENT 1 ===\n" + file_content1
+    documents_text = "=== DOCUMENT 1 ===\n" + file_content1
     if file_content2:
-        document_text += "\n\n=== DOCUMENT 2 ===\n" + file_content2
+        documents_text += "\n\n=== DOCUMENT 2 ===\n" + file_content2
 
     # Use the existing INVENTORY_PROMPT template
-    prompt = INVENTORY_PROMPT.format(document_content=document_text)
-
+    prompt = INVENTORY_PROMPT.format(documents=documents_text)
+    
     messages = [
         {
             "role": "user",
