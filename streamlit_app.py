@@ -112,17 +112,13 @@ def process_uploaded_file(uploaded_file):
 # LLM Response Parsing
 def parse_llm_response(response_text):
     """
-    Parse the LLM's response into a dictionary of answers
-    Expected format from LLM:
-    Q[number]: [Question text]
-    Answer: [answer]
-    Evidence: [evidence]
+    Parse the LLM's response into a dictionary of answers and evidence
     """
     answers = {}
+    evidence = {}
     current_question = None
     
     try:
-        # Split response into lines and process each line
         lines = response_text.split('\n')
         for line in lines:
             line = line.strip()
@@ -163,9 +159,15 @@ def parse_llm_response(response_text):
                 else:  # text format
                     answers[current_question] = answer_text
                     
+            # Store evidence
+            elif line.startswith('Evidence:') and current_question:
+                evidence[current_question] = line.replace('Evidence:', '').strip()
+                    
     except Exception as e:
         st.error(f"Error parsing LLM response: {str(e)}")
     
+    # Store evidence in session state
+    st.session_state.evidence = evidence
     return answers
 
 # LLM Request Function
@@ -173,7 +175,6 @@ def make_llm_request(file_content):
     url = "https://prod-api.vanderbilt.ai/chat"
     
     try:
-        # Get API key from Streamlit secrets
         API_KEY = st.secrets["AMPLIFY_API_KEY"]
     except KeyError:
         st.error("API key not found in secrets. Please configure your secrets.toml file.")
@@ -188,22 +189,23 @@ def make_llm_request(file_content):
     questions_text = "\n".join([f"{q}: {info['question']}" for q, info in INVENTORY_QUESTIONS.items()])
 
     prompt = f"""
-    Act like an expert in evidence-based teaching at the college level.
-    Based on the provided document, help answer as many questions as possible from the Vanderbilt Psychology Teaching Inventory. 
-    Here are all the questions:
-
-    {questions_text}
+    Based on the provided document, help answer ONLY questions where you find EXPLICIT evidence in the text.
+    - Do not make assumptions or infer answers from general context
+    - Only answer if the information is directly stated
+    - For teaching practice questions (like classroom strategies), only answer if specifically described
+    - Ignore vague or indirect references
+    - If in doubt, do not provide an answer
 
     For each question you can answer based on the document, provide:
     1. The question number (Q1-Q52)
     2. The question text
-    3. The answer you found, with a brief explanation of where in the document you found this information
+    3. Your answer with the appropriate format (yes/no, number, text, etc.)
+    4. The exact quote from the document that supports your answer
     
-    Only include questions where you found clear evidence in the document to support the answer.
     Format your response as:
     Q[number]: [Question text]
     Answer: [Your answer]
-    Evidence: [Where you found this in the document]
+    Evidence: [Quote from document]
     
     Document content:
     {file_content}
@@ -257,27 +259,25 @@ def create_input_widget(question_id, question_info, current_value=None):
             question_info["question"],
             options=["Yes", "No"],
             index=0 if current_value == "Yes" else 1 if current_value == "No" else None,
-            horizontal=True,  # Arrange horizontally
+            horizontal=True,
             key=f"input_{question_id}"
         )
     elif format_type.startswith("choice:"):
         options = format_type.split(":")[1].strip().split("/")
-        # Use radio buttons instead of selectbox, arranged horizontally
         return st.radio(
             question_info["question"],
             options=options,
             index=options.index(current_value) if current_value in options else None,
-            horizontal=True,  # Arrange horizontally
+            horizontal=True,
             key=f"input_{question_id}"
         )
     elif format_type == "percentage (0 to 100)":
-        # Use slider instead of number input
         return st.slider(
             question_info["question"],
             min_value=0,
             max_value=100,
-            value=int(current_value) if current_value is not None else 0,  # Default to 0
-            format="%d%%",  # Add % symbol
+            value=int(current_value) if current_value is not None else 0,
+            format="%d%%",
             key=f"input_{question_id}"
         )
     elif format_type == "number (minutes)" or format_type == "number":
@@ -305,7 +305,9 @@ def display_section(section_name, question_ids, current_answers):
         question_info = INVENTORY_QUESTIONS[q_id]
         current_value = current_answers.get(q_id)
         
-        col1, col2 = st.columns([3, 1])
+        # Change column ratio to make room for evidence button
+        col1, col2, col3 = st.columns([3, 1, 1])
+        
         with col1:
             answer = create_input_widget(q_id, question_info, current_value)
             section_answers[q_id] = answer
@@ -322,6 +324,13 @@ def display_section(section_name, question_ids, current_answers):
                     st.warning("Needs answer")
                 else:
                     st.success("Thank you")
+        
+        # Add evidence expander in the third column
+        with col3:
+            if current_value and 'evidence' in st.session_state and q_id in st.session_state.evidence:
+                with st.expander("Show Evidence"):
+                    st.markdown(f"*Quote from document:*")
+                    st.write(st.session_state.evidence[q_id])
     
     return section_answers, all_answered
 
