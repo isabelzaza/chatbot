@@ -4,6 +4,7 @@ import streamlit as st
 import PyPDF2
 import docx
 import io
+import gspread
 
 # Define the inventory questions
 INVENTORY_QUESTIONS = {
