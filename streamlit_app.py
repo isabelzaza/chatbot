@@ -3,10 +3,10 @@ import json
 
 
 def make_llm_request(messages):
-    # URL for the Amplify API
     url = "https://prod-api.vanderbilt.ai/chat"
-
-    API_KEY = AMPLIFY_API_KEY  # INSERT YOUR API KEY HERE
+    
+    # Get API key from Streamlit secrets
+    API_KEY = st.secrets["AMPLIFY_API_KEY"]
 
     # Headers
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {API_KEY}"}
