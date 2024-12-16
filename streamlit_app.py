@@ -188,6 +188,7 @@ def make_llm_request(file_content):
     questions_text = "\n".join([f"{q}: {info['question']}" for q, info in INVENTORY_QUESTIONS.items()])
 
     prompt = f"""
+    Act like an expert in evidence-based teaching at the college level.
     Based on the provided document, help answer as many questions as possible from the Vanderbilt Psychology Teaching Inventory. 
     Here are all the questions:
 
@@ -256,22 +257,27 @@ def create_input_widget(question_id, question_info, current_value=None):
             question_info["question"],
             options=["Yes", "No"],
             index=0 if current_value == "Yes" else 1 if current_value == "No" else None,
+            horizontal=True,  # Arrange horizontally
             key=f"input_{question_id}"
         )
     elif format_type.startswith("choice:"):
         options = format_type.split(":")[1].strip().split("/")
-        return st.selectbox(
+        # Use radio buttons instead of selectbox, arranged horizontally
+        return st.radio(
             question_info["question"],
             options=options,
             index=options.index(current_value) if current_value in options else None,
+            horizontal=True,  # Arrange horizontally
             key=f"input_{question_id}"
         )
     elif format_type == "percentage (0 to 100)":
-        return st.number_input(
+        # Use slider instead of number input
+        return st.slider(
             question_info["question"],
             min_value=0,
             max_value=100,
-            value=int(current_value) if current_value is not None else None,
+            value=int(current_value) if current_value is not None else 0,  # Default to 0
+            format="%d%%",  # Add % symbol
             key=f"input_{question_id}"
         )
     elif format_type == "number (minutes)" or format_type == "number":
