@@ -61,6 +61,20 @@ INVENTORY_QUESTIONS = {
     "Q52": {"question": "Have you observed another instructor's class to get ideas?", "format": "y/n"}
 }
 
+# Section Definitions
+SECTIONS = {
+    "Section I: Course Details": ["Q1", "Q2", "Q3", "Q4"],
+    "Section II: Information Provided to Students": ["Q5", "Q6", "Q7", "Q8"],
+    "Section III: Supporting Materials": list(f"Q{i}" for i in range(9, 20)),
+    "Section IV: In-Class Features": list(f"Q{i}" for i in range(20, 29)),
+    "Section V: Assignments": list(f"Q{i}" for i in range(29, 34)),
+    "Section VI: Feedback and Testing": list(f"Q{i}" for i in range(34, 40)),
+    "Section VII: Other": list(f"Q{i}" for i in range(40, 45)),
+    "Section VIII: Teaching Assistants": list(f"Q{i}" for i in range(45, 48)),
+    "Section IX: Collaboration": list(f"Q{i}" for i in range(48, 53))
+}
+
+# File Processing Functions
 def read_pdf(file):
     pdf_reader = PyPDF2.PdfReader(file)
     text = ""
@@ -95,10 +109,71 @@ def process_uploaded_file(uploaded_file):
         st.error(f"Error processing file: {str(e)}")
         return None
 
+# LLM Response Parsing
+def parse_llm_response(response_text):
+    """
+    Parse the LLM's response into a dictionary of answers
+    Expected format from LLM:
+    Q[number]: [Question text]
+    Answer: [answer]
+    Evidence: [evidence]
+    """
+    answers = {}
+    current_question = None
+    
+    try:
+        # Split response into lines and process each line
+        lines = response_text.split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Check for question number at start of line
+            if line.startswith('Q') and ':' in line:
+                q_part = line.split(':')[0].strip()
+                if q_part in INVENTORY_QUESTIONS:
+                    current_question = q_part
+                    
+            # Check for answer line
+            elif line.startswith('Answer:') and current_question:
+                answer_text = line.replace('Answer:', '').strip()
+                
+                # Convert answer text to appropriate format based on question type
+                q_format = INVENTORY_QUESTIONS[current_question]["format"]
+                if q_format == "y/n":
+                    # Look for yes/no indicators in the answer
+                    answer_text = answer_text.lower()
+                    if any(word in answer_text for word in ['yes', 'does', 'do', 'provides', 'has']):
+                        answers[current_question] = "Yes"
+                    elif any(word in answer_text for word in ['no', 'does not', "doesn't", 'do not', "don't"]):
+                        answers[current_question] = "No"
+                elif q_format.startswith("choice:"):
+                    options = q_format.split(":")[1].strip().split("/")
+                    # Try to match answer text to one of the options
+                    for option in options:
+                        if option.lower() in answer_text.lower():
+                            answers[current_question] = option
+                elif q_format == "percentage (0 to 100)" or q_format == "number (minutes)":
+                    # Extract numbers from the answer
+                    import re
+                    numbers = re.findall(r'\d+', answer_text)
+                    if numbers:
+                        answers[current_question] = numbers[0]
+                else:  # text format
+                    answers[current_question] = answer_text
+                    
+    except Exception as e:
+        st.error(f"Error parsing LLM response: {str(e)}")
+    
+    return answers
+
+# LLM Request Function
 def make_llm_request(file_content):
     url = "https://prod-api.vanderbilt.ai/chat"
     
     try:
+        # Get API key from Streamlit secrets
         API_KEY = st.secrets["AMPLIFY_API_KEY"]
     except KeyError:
         st.error("API key not found in secrets. Please configure your secrets.toml file.")
@@ -110,7 +185,7 @@ def make_llm_request(file_content):
     }
 
     # Create a formatted string of all questions
-    questions_text = "\n".join([f"{q}: {text}" for q, text in INVENTORY_QUESTIONS.items()])
+    questions_text = "\n".join([f"{q}: {info['question']}" for q, info in INVENTORY_QUESTIONS.items()])
 
     prompt = f"""
     Based on the provided document, help answer as many questions as possible from the Vanderbilt Psychology Teaching Inventory. 
@@ -171,6 +246,113 @@ def make_llm_request(file_content):
         st.error(f"An error occurred: {str(e)}")
         return None
 
+# UI Components
+def create_input_widget(question_id, question_info, current_value=None):
+    """Create the appropriate input widget based on question format"""
+    format_type = question_info["format"]
+    
+    if format_type == "y/n":
+        return st.radio(
+            question_info["question"],
+            options=["Yes", "No"],
+            index=0 if current_value == "Yes" else 1 if current_value == "No" else None,
+            key=f"input_{question_id}"
+        )
+    elif format_type.startswith("choice:"):
+        options = format_type.split(":")[1].strip().split("/")
+        return st.selectbox(
+            question_info["question"],
+            options=options,
+            index=options.index(current_value) if current_value in options else None,
+            key=f"input_{question_id}"
+        )
+    elif format_type == "percentage (0 to 100)":
+        return st.number_input(
+            question_info["question"],
+            min_value=0,
+            max_value=100,
+            value=int(current_value) if current_value is not None else None,
+            key=f"input_{question_id}"
+        )
+    elif format_type == "number (minutes)":
+        return st.number_input(
+            question_info["question"],
+            min_value=0,
+            value=int(current_value) if current_value is not None else None,
+            key=f"input_{question_id}"
+        )
+    else:  # text or number
+        return st.text_input(
+            question_info["question"],
+            value=str(current_value) if current_value is not None else "",
+            key=f"input_{question_id}"
+        )
+
+def display_section(section_name, question_ids, current_answers):
+    """Display a section of questions with appropriate input widgets"""
+    st.subheader(section_name)
+    
+    section_answers = {}
+    all_answered = True
+    
+    for q_id in question_ids:
+        question_info = INVENTORY_QUESTIONS[q_id]
+        current_value = current_answers.get(q_id)
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            answer = create_input_widget(q_id, question_info, current_value)
+            section_answers[q_id] = answer
+            
+        with col2:
+            if current_value:
+                st.success("Pre-filled")
+            else:
+                st.warning("Needs answer")
+                all_answered = False
+    
+    return section_answers, all_answered
+
+def process_sections(analyzed_answers):
+    """Process each section of questions sequentially"""
+    if 'current_section' not in st.session_state:
+        st.session_state.current_section = 0
+    
+    if 'all_answers' not in st.session_state:
+        st.session_state.all_answers = analyzed_answers or {}
+    
+    sections_list = list(SECTIONS.items())
+    current_section = sections_list[st.session_state.current_section]
+    
+    section_name, question_ids = current_section
+    section_answers, all_answered = display_section(section_name, question_ids, st.session_state.all_answers)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.session_state.current_section > 0:
+            if st.button("Previous Section"):
+                st.session_state.current_section -= 1
+                st.rerun()
+    
+    with col2:
+        st.write(f"Section {st.session_state.current_section + 1} of {len(SECTIONS)}")
+    
+    with col3:
+        if st.session_state.current_section < len(SECTIONS) - 1:
+            if all_answered:
+                if st.button("Next Section"):
+                    st.session_state.all_answers.update(section_answers)
+                    st.session_state.current_section += 1
+                    st.rerun()
+            else:
+                st.warning("Please answer all questions")
+        elif all_answered:
+            if st.button("Complete"):
+                st.session_state.all_answers.update(section_answers)
+                st.success("All sections completed!")
+                # Here we would add code to save to Excel
+
 def main():
     st.title("Vanderbilt Psychology Teaching Inventory Helper")
     
@@ -184,23 +366,26 @@ def main():
     uploaded_file = st.file_uploader("Upload your syllabus or teaching document", 
                                    type=["pdf", "docx"])
     
+    if 'analyzed_answers' not in st.session_state:
+        st.session_state.analyzed_answers = None
+    
     # Process the file if uploaded
     if uploaded_file:
         with st.spinner('Processing document...'):
             file_content = process_uploaded_file(uploaded_file)
             if file_content:
                 st.success("Document processed successfully!")
-                if st.checkbox("Show document content"):
-                    st.text_area("Document content:", file_content, height=200)
                 
-                # Automatically analyze the document
-                response = make_llm_request(file_content)
-                
-                # Display the response
-                if response:
-                    st.subheader("Analysis Results:")
-                    st.write(response)
-                    st.info("Please review these auto-generated answers and adjust them if needed. The system only provides answers when it finds clear evidence in the document.")
+                if st.session_state.analyzed_answers is None:
+                    response = make_llm_request(file_content)
+                    if response:
+                        st.session_state.analyzed_answers = parse_llm_response(response)
+                        if st.checkbox("Show parsed answers"):
+                            st.write(st.session_state.analyzed_answers)
+    
+    # If we have analyzed answers or are in the middle of sections, show the section interface
+    if st.session_state.analyzed_answers is not None or 'current_section' in st.session_state:
+        process_sections(st.session_state.analyzed_answers)
 
 if __name__ == "__main__":
     main()
