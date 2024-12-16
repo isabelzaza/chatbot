@@ -277,7 +277,7 @@ def make_llm_request(file_content1, file_content2=None):
 
     # Use the existing INVENTORY_PROMPT template
     prompt = INVENTORY_PROMPT.format(documents=documents_text)
-    
+
     messages = [
         {
             "role": "user",
@@ -469,26 +469,34 @@ def main():
     if 'analyzed_answers' not in st.session_state:
         st.session_state.analyzed_answers = None
     
-    # Process files if uploaded
-    if file1:  # Changed from "file1:" to "if file1:"
+    # Add a start button
+    start_button = st.button("Start with these documents")
+    
+    # Only process files when start button is clicked
+    if start_button:
         with st.spinner('Processing documents...'):
             # Process first file
-            content1 = process_uploaded_file(file1)
+            content1 = process_uploaded_file(file1) if file1 else None
             
             # Process second file if it exists
             content2 = process_uploaded_file(file2) if file2 else None
             
-            if content1:
-                st.success("Document(s) processed successfully!")
+            if content1 or file1 is None:  # Proceed if we have content or no file was uploaded
+                if content1:
+                    st.success("Document(s) processed successfully!")
                 
                 if st.session_state.analyzed_answers is None:
-                    response = make_llm_request(content1, content2)
-                    if response:
-                        st.session_state.analyzed_answers = parse_llm_response(response)
-                        if st.checkbox("Show parsed answers"):
-                            st.write(st.session_state.analyzed_answers)
+                    if content1:
+                        response = make_llm_request(content1, content2)
+                        if response:
+                            st.session_state.analyzed_answers = parse_llm_response(response)
+                            if st.checkbox("Show parsed answers"):
+                                st.write(st.session_state.analyzed_answers)
+                    else:
+                        # If no files uploaded, start with empty answers
+                        st.session_state.analyzed_answers = {}
     
-    # If we have analyzed answers or are in the middle of sections, show the section interface
+    # Only show sections after processing or if we're already in the middle of sections
     if st.session_state.analyzed_answers is not None or 'current_section' in st.session_state:
         process_sections(st.session_state.analyzed_answers)
 
