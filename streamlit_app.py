@@ -30,7 +30,7 @@ INVENTORY_QUESTIONS = {
     "Q20": {"question": "Do you regularly use a strategy to elicit student questions in class -beyond saying are there any questions and moving on?", "format": "y/n"},
     "Q21": {"question": "In a typical class, what is the proportion of time for which students work in small groups?", "format": "percentage (0 to 100)"},
     "Q22": {"question": "In a typical class, what is the proportion of time for which you lecture?", "format": "percentage (0 to 100)"},
-    "Q23": {"question": "What is the longest duration you lecture before breaking into an entirely different activity (not just stopping to ask a question or invite questions)?", "format": "number (minutes)"},
+    "Q23": {"question": "What is the longest duration (in mins) you lecture before breaking into an entirely different activity (not just stopping to ask a question or invite questions)?", "format": "number (minutes)"},
     "Q24": {"question": "How often do you use demonstrations, simulations, or videos?", "format": "choice: every class/every week/once in a while/rarely"},
     "Q25": {"question": "If you show a video, do you provide students with detailed instructions of what to look for in the video, and follow-up with a discussion?", "format": "y/n"},
     "Q26": {"question": "How often do you talk about why the material might be useful or interesting from a student's point of view?", "format": "choice: every class/every week/once in a while/rarely"},
@@ -76,8 +76,9 @@ SECTIONS = {
 }
 # LLM Prompt Template
 INVENTORY_PROMPT = """
-Based on the provided document(s), help answer questions from the Vanderbilt Psychology Teaching Inventory. 
-Consider ALL provided documents together when determining answers.
+Based on the provided document(s), analyze and attempt to answer ALL questions from the Vanderbilt Psychology Teaching Inventory (Q1 through Q52). 
+Consider ALL provided documents together and try to find answers for every question.
+
 
 Be precise and only extract information that EXACTLY matches what is asked for. For example:
 - For instructor name, look for lines starting with "Instructor:" or similar
@@ -395,10 +396,13 @@ def display_section(section_name, question_ids, current_answers):
         
         # Add evidence expander in the third column
         with col3:
-            if current_value and 'evidence' in st.session_state and q_id in st.session_state.evidence:
+            if 'evidence' in st.session_state and q_id in st.session_state.evidence:
                 with st.expander("Why I selected this?"):
                     st.markdown(f"*Based on this text from your document:*")
                     st.write(st.session_state.evidence[q_id])
+            elif current_value:  # If we have a pre-filled answer but no evidence
+                with st.expander("Why I selected this?"):
+                    st.write("Pre-filled from document analysis, but specific quote not captured.")
     
     return section_answers, all_answered
 
