@@ -76,20 +76,32 @@ SECTIONS = {
 # LLM Prompt Template
 INVENTORY_PROMPT = """
 Based on the provided document, help answer questions from the Vanderbilt Psychology Teaching Inventory. 
-Act like an expert in college teaching, someone used to looking at syllabi for courses.
-Based on the provided document, help answer questions from the Vanderbilt Psychology Teaching Inventory. 
-Keep in mind that some questions, for instance about things that happen in class, 
-will not be discussed on the syllabus.
+Be precise and only extract information that EXACTLY matches what is asked for. For example:
+- For instructor name, look for lines starting with "Instructor:" or similar
+- For course number, look for exact course codes (e.g., PSY followed by numbers)
+- For semester and year, look for explicit semester names (Fall, Spring, etc.) and years
+
+IMPORTANT RULES:
+- For Course Number: Must be in format "PSY ####" or similar
+- For Instructor Name: Must come after "Instructor:" or "Professor"
+- For Semester/Year: Must include both a semester name AND a year
+
+Examples of INCORRECT parsing:
+❌ Using course title as instructor name
+❌ Using instructor name as course number
+❌ Using partial semester without year
+
 For each answer you can determine from the document, provide:
 1. The question number (Q1-Q52)
 2. The question text
-3. Your answer with the appropriate format (yes/no, number, text, etc.)
-4. The relevant text from the document that led to your answer
+3. Your answer - ONLY if you find an exact match in the document
+4. The exact quote from the document that proves your answer
 
 Format your response as:
 Q[number]: [Question text]
 Answer: [Your answer]
-Evidence: [Supporting text from document]
+Evidence: [Quote "exactly as it appears" in the document]
+
 
 Document content:
 {document_content}
