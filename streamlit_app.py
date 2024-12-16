@@ -287,7 +287,7 @@ def create_input_widget(question_id, question_info, current_value=None):
             value=str(current_value) if current_value is not None else "",
             key=f"input_{question_id}"
         )
-        )
+        
 
 def display_section(section_name, question_ids, current_answers):
     """Display a section of questions with appropriate input widgets"""
