@@ -469,21 +469,24 @@ def main():
     if 'analyzed_answers' not in st.session_state:
         st.session_state.analyzed_answers = None
     
-    file1:
-    with st.spinner('Processing documents...'):
-        # Process first file
-        content1 = process_uploaded_file(file1)
-        
-        # Process second file if it exists
-        content2 = process_uploaded_file(file2) if file2 else None
-        
-        if content1:
-            st.success("Document(s) processed successfully!")
+    # Process files if uploaded
+    if file1:  # Changed from "file1:" to "if file1:"
+        with st.spinner('Processing documents...'):
+            # Process first file
+            content1 = process_uploaded_file(file1)
             
-            if st.session_state.analyzed_answers is None:
-                response = make_llm_request(content1, content2)
-                if response:
-                    st.session_state.analyzed_answers = parse_llm_response(response)
+            # Process second file if it exists
+            content2 = process_uploaded_file(file2) if file2 else None
+            
+            if content1:
+                st.success("Document(s) processed successfully!")
+                
+                if st.session_state.analyzed_answers is None:
+                    response = make_llm_request(content1, content2)
+                    if response:
+                        st.session_state.analyzed_answers = parse_llm_response(response)
+                        if st.checkbox("Show parsed answers"):
+                            st.write(st.session_state.analyzed_answers)
     
     # If we have analyzed answers or are in the middle of sections, show the section interface
     if st.session_state.analyzed_answers is not None or 'current_section' in st.session_state:
