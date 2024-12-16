@@ -255,7 +255,7 @@ def create_input_widget(question_id, question_info, current_value=None):
         return st.radio(
             question_info["question"],
             options=["Yes", "No"],
-            index=0 if current_value == "Yes" else 1 if current_value == "No" else None,
+            index=0 if current_value == "Yes" else 1 if current_value == "No" else 0,  # Default to Yes
             key=f"input_{question_id}"
         )
     elif format_type.startswith("choice:"):
@@ -263,7 +263,7 @@ def create_input_widget(question_id, question_info, current_value=None):
         return st.selectbox(
             question_info["question"],
             options=options,
-            index=options.index(current_value) if current_value in options else None,
+            index=options.index(current_value) if current_value in options else 0,  # Default to first option
             key=f"input_{question_id}"
         )
     elif format_type == "percentage (0 to 100)":
@@ -271,21 +271,22 @@ def create_input_widget(question_id, question_info, current_value=None):
             question_info["question"],
             min_value=0,
             max_value=100,
-            value=int(current_value) if current_value is not None else None,
+            value=int(current_value) if current_value is not None else 0,  # Default to 0
             key=f"input_{question_id}"
         )
-    elif format_type == "number (minutes)":
+    elif format_type == "number (minutes)" or format_type == "number":
         return st.number_input(
             question_info["question"],
             min_value=0,
-            value=int(current_value) if current_value is not None else None,
+            value=int(current_value) if current_value is not None else 0,  # Default to 0
             key=f"input_{question_id}"
         )
-    else:  # text or number
+    else:  # text
         return st.text_input(
             question_info["question"],
             value=str(current_value) if current_value is not None else "",
             key=f"input_{question_id}"
+        )
         )
 
 def display_section(section_name, question_ids, current_answers):
@@ -304,12 +305,15 @@ def display_section(section_name, question_ids, current_answers):
             answer = create_input_widget(q_id, question_info, current_value)
             section_answers[q_id] = answer
             
+            # Check if the answer is empty or None
+            if answer is None or (isinstance(answer, str) and answer.strip() == ""):
+                all_answered = False
+            
         with col2:
             if current_value:
                 st.success("Pre-filled")
             else:
                 st.warning("Needs answer")
-                all_answered = False
     
     return section_answers, all_answered
 
