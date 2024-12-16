@@ -1,6 +1,6 @@
 import requests
 import json
-
+import streamlit as st
 
 def make_llm_request(messages):
     url = "https://prod-api.vanderbilt.ai/chat"
