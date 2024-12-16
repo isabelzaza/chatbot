@@ -154,7 +154,7 @@ def parse_llm_response(response_text):
                     for option in options:
                         if option.lower() in answer_text.lower():
                             answers[current_question] = option
-                elif q_format == "percentage (0 to 100)" or q_format == "number (minutes)":
+                elif q_format == "percentage (0 to 100)" or q_format == "number (minutes)" or q_format == "number":
                     # Extract numbers from the answer
                     import re
                     numbers = re.findall(r'\d+', answer_text)
@@ -255,7 +255,7 @@ def create_input_widget(question_id, question_info, current_value=None):
         return st.radio(
             question_info["question"],
             options=["Yes", "No"],
-            index=0 if current_value == "Yes" else 1 if current_value == "No" else 0,  # Default to Yes
+            index=0 if current_value == "Yes" else 1 if current_value == "No" else None,
             key=f"input_{question_id}"
         )
     elif format_type.startswith("choice:"):
@@ -263,7 +263,7 @@ def create_input_widget(question_id, question_info, current_value=None):
         return st.selectbox(
             question_info["question"],
             options=options,
-            index=options.index(current_value) if current_value in options else 0,  # Default to first option
+            index=options.index(current_value) if current_value in options else None,
             key=f"input_{question_id}"
         )
     elif format_type == "percentage (0 to 100)":
@@ -271,14 +271,14 @@ def create_input_widget(question_id, question_info, current_value=None):
             question_info["question"],
             min_value=0,
             max_value=100,
-            value=int(current_value) if current_value is not None else 0,  # Default to 0
+            value=int(current_value) if current_value is not None else None,
             key=f"input_{question_id}"
         )
     elif format_type == "number (minutes)" or format_type == "number":
         return st.number_input(
             question_info["question"],
             min_value=0,
-            value=int(current_value) if current_value is not None else 0,  # Default to 0
+            value=int(current_value) if current_value is not None else None,
             key=f"input_{question_id}"
         )
     else:  # text
@@ -287,7 +287,6 @@ def create_input_widget(question_id, question_info, current_value=None):
             value=str(current_value) if current_value is not None else "",
             key=f"input_{question_id}"
         )
-        
 
 def display_section(section_name, question_ids, current_answers):
     """Display a section of questions with appropriate input widgets"""
@@ -311,9 +310,12 @@ def display_section(section_name, question_ids, current_answers):
             
         with col2:
             if current_value:
-                st.success("Pre-filled")
+                st.success("Pre-filled / check and change as needed")
             else:
-                st.warning("Needs answer")
+                if answer is None or (isinstance(answer, str) and answer.strip() == ""):
+                    st.warning("Needs answer")
+                else:
+                    st.success("Thank you")
     
     return section_answers, all_answered
 
