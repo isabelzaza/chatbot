@@ -81,30 +81,43 @@ Be precise and only extract information that EXACTLY matches what is asked for. 
 - For course number, look for exact course codes (e.g., PSY followed by numbers)
 - For semester and year, look for explicit semester names (Fall, Spring, etc.) and years
 
-IMPORTANT RULES:
-- For Course Number: Must be in format "PSY ####" or similar
-- For Instructor Name: Must come after "Instructor:" or "Professor"
-- For Semester/Year: Must include both a semester name AND a year
+*** RULES ***
+1. For Instructor Name:
+   - Should appear on a line that starts with "Instructor" or contain the keyword "Instructor" or "Professor" followed by the instructor's name.
 
-Examples of INCORRECT parsing:
-❌ Using course title as instructor name
-❌ Using instructor name as course number
-❌ Using partial semester without year
+2. For Course Number:
+   - Should be in the format "PSY ####" where #### are digits (and PSY could be another code, like NSC or BSCI)
+   - The course number line will typically appear at or near the top of the syllabus.
+   - Do NOT use any other text as the course number. For example, do not use the course title, instructor’s name, or email address as the course number.
 
-For each answer you can determine from the document, provide:
+3. For Semester and Year:
+   - Could be a recognized semester name (e.g., "Spring", "Fall", "Summer") AND a four-digit year.
+   - Should be on the first page of the syllabus
+   - Could be abbreviated, like "F24" of "S25"
+   - Only use the exact semester and year stated. Do not infer or guess.
+
+*** EXAMPLES OF INCORRECT PARSING ***
+- Using "PSY 3785" as the instructor’s name.
+- Using "Professor Isabel Gauthier" as the course number.
+- Using "Spring" without a year as semester/year.
+
+For each answer you can determine from ANY of the documents, provide:
 1. The question number (Q1-Q52)
 2. The question text
-3. Your answer - ONLY if you find an exact match in the document
-4. The exact quote from the document that proves your answer
+3. Your answer - ONLY if you find an exact match in either document
+4. The exact quote and which document it comes from
 
 Format your response as:
 Q[number]: [Question text]
 Answer: [Your answer]
-Evidence: [Quote "exactly as it appears" in the document]
+Evidence: [Quote "exactly as it appears" in document] (From Document 1/2)
 
+The documents:
+=== DOCUMENT 1 ===
+{document1_content}
 
-Document content:
-{document_content}
+{document2_section}
+
 """
 
 # File Processing Functions
@@ -242,7 +255,8 @@ def parse_llm_response(response_text):
     return answers
 
 # LLM Request Function
-def make_llm_request(file_content):
+def make_llm_request(file_content1, file_content2=None):
+    """Make LLM request with support for one or two documents"""
     url = "https://prod-api.vanderbilt.ai/chat"
     
     try:
@@ -256,10 +270,13 @@ def make_llm_request(file_content):
         "Authorization": f"Bearer {API_KEY}"
     }
 
-    # Create a formatted string of all questions
-    questions_text = "\n".join([f"{q}: {info['question']}" for q, info in INVENTORY_QUESTIONS.items()])
+    # Prepare document content
+    document_text = "=== DOCUMENT 1 ===\n" + file_content1
+    if file_content2:
+        document_text += "\n\n=== DOCUMENT 2 ===\n" + file_content2
 
-    prompt = INVENTORY_PROMPT.format(document_content=file_content)
+    # Use the existing INVENTORY_PROMPT template
+    prompt = INVENTORY_PROMPT.format(document_content=document_text)
 
     messages = [
         {
@@ -285,7 +302,7 @@ def make_llm_request(file_content):
     }
 
     try:
-        with st.spinner('Analyzing document and matching to inventory questions...'):
+        with st.spinner('Analyzing document(s) and matching to inventory questions...'):
             response = requests.post(url, headers=headers, data=json.dumps(payload))
             
             if response.status_code == 200:
@@ -434,29 +451,39 @@ def main():
     st.write("""
     The Full inventory has several questions but I want to help you answer them as fast as possible. 
     If you have a syllabus for the course, or any other document relevant to your teaching practices 
-    in this course, please upload it (in pdf or .docx format).
+    in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions
+    manually.
     """)
     
-    # File uploader
-    uploaded_file = st.file_uploader("Upload your syllabus or teaching document", 
-                                   type=["pdf", "docx"])
+    # File uploaders
+    col1, col2 = st.columns(2)
+    with col1:
+        file1 = st.file_uploader("Upload your syllabus", 
+                                type=["pdf", "docx"],
+                                key="file1")
+    with col2:
+        file2 = st.file_uploader("Upload any additional teaching document (optional)", 
+                                type=["pdf", "docx"],
+                                key="file2")
     
     if 'analyzed_answers' not in st.session_state:
         st.session_state.analyzed_answers = None
     
-    # Process the file if uploaded
-    if uploaded_file:
-        with st.spinner('Processing document...'):
-            file_content = process_uploaded_file(uploaded_file)
-            if file_content:
-                st.success("Document processed successfully!")
-                
-                if st.session_state.analyzed_answers is None:
-                    response = make_llm_request(file_content)
-                    if response:
-                        st.session_state.analyzed_answers = parse_llm_response(response)
-                        if st.checkbox("Show parsed answers"):
-                            st.write(st.session_state.analyzed_answers)
+    file1:
+    with st.spinner('Processing documents...'):
+        # Process first file
+        content1 = process_uploaded_file(file1)
+        
+        # Process second file if it exists
+        content2 = process_uploaded_file(file2) if file2 else None
+        
+        if content1:
+            st.success("Document(s) processed successfully!")
+            
+            if st.session_state.analyzed_answers is None:
+                response = make_llm_request(content1, content2)
+                if response:
+                    st.session_state.analyzed_answers = parse_llm_response(response)
     
     # If we have analyzed answers or are in the middle of sections, show the section interface
     if st.session_state.analyzed_answers is not None or 'current_section' in st.session_state:
