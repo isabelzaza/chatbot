@@ -144,11 +144,9 @@ def save_to_google_sheets(answers):
             "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
             "token_uri": st.secrets["gcp_service_account"]["token_uri"],
             "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
-            "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
+            "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"],
+            "universe_domain": st.secrets["gcp_service_account"]["universe_domain"]
         }
-        
-        gc = gspread.service_account_from_dict(credentials)
-        sheet = gc.open("My_GoogleSheet").sheet1
         
         # Create row of answers in correct order
         row = []
@@ -156,9 +154,16 @@ def save_to_google_sheets(answers):
             q_id = f"Q{i}"
             row.append(answers.get(q_id, ""))
             
+        # Connect to Google Sheets
+        gc = gspread.service_account_from_dict(credentials)
+        sheet_url = st.secrets["google_sheets"]["sheet_url"]
+        spreadsheet = gc.open_by_url(sheet_url)
+        worksheet = spreadsheet.sheet1  # Gets the first sheet
+        
         # Append row to sheet
-        sheet.append_row(row)
+        worksheet.append_row(row)
         return True
+
     except Exception as e:
         st.error(f"Error saving to Google Sheets: {str(e)}")
         return False
@@ -253,15 +258,15 @@ def make_llm_request(file_content):
 
     payload = {
         "data": {
-            "model": "gpt-4o",
-            "temperature": 0.5,
+            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "temperature": 0.3,
             "max_tokens": 4096,
             "dataSources": [],
             "messages": messages,
             "options": {
                 "ragOnly": False,
                 "skipRag": True,
-                "model": {"id": "gpt-4o"},
+                "model": {"id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
                 "prompt": prompt,
             },
         }
