@@ -26,7 +26,7 @@ INVENTORY_QUESTIONS = {
     "Q16": {"question": "Do you provide other materials, like reading or study aids?", "format": "y/n"},
     "Q17": {"question": "Do you give students access to articles or research related to the course?", "format": "y/n"},
     "Q18": {"question": "Do you share examples of excellent student papers or projects?", "format": "y/n"},
-    "Q19": {"question": "Do you provide grading guides/ rubrics to explain how assignments will be marked?", "format": "y/n"},
+    "Q19": {"question": "Do you provide grading guides/rubrics to explain how assignments will be marked?", "format": "y/n"},
     "Q20": {"question": "Do you regularly use a strategy to elicit student questions in class -beyond saying are there any questions and moving on?", "format": "y/n"},
     "Q21": {"question": "In a typical class, what is the proportion of time for which students work in small groups?", "format": "percentage (0 to 100)"},
     "Q22": {"question": "In a typical class, what is the proportion of time for which you lecture?", "format": "percentage (0 to 100)"},
@@ -388,12 +388,12 @@ def create_input_widget(question_id, question_info, current_value=None):
             key=f"input_{question_id}"
         )
     elif format_type == "percentage (0 to 100)":
-        return st.slider(
+        return st.number_input(
             question_info["question"],
             min_value=0,
             max_value=100,
-            value=int(current_value) if current_value is not None else 0,
-            format="%d%%",
+            value=int(current_value) if current_value is not None else None,
+            placeholder="Enter percentage (0-100)",
             key=f"input_{question_id}"
         )
     elif format_type == "number (minutes)" or format_type == "number":
@@ -401,6 +401,7 @@ def create_input_widget(question_id, question_info, current_value=None):
             question_info["question"],
             min_value=0,
             value=int(current_value) if current_value is not None else None,
+            placeholder="Enter number",
             key=f"input_{question_id}"
         )
     else:  # text
@@ -720,19 +721,6 @@ def main():
                     reset_form()
                     st.rerun()
         
-        # Add footer with save status
-        if 'all_answers' in st.session_state and st.session_state.all_answers:
-            st.markdown("---")
-            st.markdown("*Your answers are automatically saved in the browser. You can close and return later.*")
-            
-            # Add download button for answers
-            if st.download_button(
-                "Download Answers as JSON",
-                data=json.dumps(st.session_state.all_answers, indent=2),
-                file_name="inventory_answers.json",
-                mime="application/json"
-            ):
-                st.success("Answers downloaded successfully!")
                 
     except Exception as e:
         st.error("An unexpected error occurred. Please try refreshing the page.")
