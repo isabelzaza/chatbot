@@ -411,97 +411,127 @@ def display_section(section_name, question_ids, current_answers):
     section_answers = {}
     all_answered = True
     
-    for q_id in question_ids:
-        question_info = INVENTORY_QUESTIONS[q_id]
-        current_value = current_answers.get(q_id)
-        
-        # Change column ratio to make room for evidence button
-        col1, col2, col3 = st.columns([3, 1, 1])
-        
-        with col1:
-            answer = create_input_widget(q_id, question_info, current_value)
-            section_answers[q_id] = answer
+    # Create a container for this section
+    section_container = st.container()
+    
+    with section_container:
+        for q_id in question_ids:
+            question_info = INVENTORY_QUESTIONS[q_id]
+            current_value = current_answers.get(q_id)
             
-            # Check if the answer is empty or None
-            if answer is None or (isinstance(answer, str) and answer.strip() == ""):
-                all_answered = False
+            # Use consistent column layout for all questions
+            cols = st.columns([3, 1, 1])
             
-        with col2:
-            if current_value:
-                st.success("Pre-filled / check and change as needed")
-            else:
+            # Question and input widget
+            with cols[0]:
+                answer = create_input_widget(q_id, question_info, current_value)
+                section_answers[q_id] = answer
+                
                 if answer is None or (isinstance(answer, str) and answer.strip() == ""):
-                    st.warning("Needs answer")
+                    all_answered = False
+            
+            # Status indicator
+            with cols[1]:
+                if current_value:
+                    st.success("Pre-filled / check and change as needed")
                 else:
-                    st.success("Thank you")
-        
-        # Add evidence expander in the third column
-        with col3:
-            if 'evidence' in st.session_state and q_id in st.session_state.evidence:
+                    if answer is None or (isinstance(answer, str) and answer.strip() == ""):
+                        st.warning("Needs answer")
+                    else:
+                        st.success("Thank you")
+            
+            # Evidence expander
+            with cols[2]:
+                # Ensure evidence state exists
+                if 'evidence' not in st.session_state:
+                    st.session_state.evidence = {}
+                
+                # Create expander regardless of evidence existence
                 with st.expander("Why I selected this?"):
-                    st.markdown(f"*Based on this text from your document:*")
-                    st.write(st.session_state.evidence[q_id])
-            elif current_value:  # If we have a pre-filled answer but no evidence
-                with st.expander("Why I selected this?"):
-                    st.write("Pre-filled from document analysis, but specific quote not captured.")
+                    if q_id in st.session_state.evidence and st.session_state.evidence[q_id]:
+                        st.markdown("*Based on this text from your document:*")
+                        st.write(st.session_state.evidence[q_id])
+                    elif current_value:
+                        st.write("Pre-filled from document analysis, but specific quote not captured.")
+                    else:
+                        st.write("No automated analysis available for this question.")
     
     return section_answers, all_answered
 
 def process_sections(analyzed_answers):
     """Process each section of questions sequentially"""
+    # Initialize session state variables
     if 'current_section' not in st.session_state:
         st.session_state.current_section = 0
     
     if 'all_answers' not in st.session_state:
         st.session_state.all_answers = analyzed_answers or {}
     
-    sections_list = list(SECTIONS.items())
-    current_section = sections_list[st.session_state.current_section]
+    # Create a container for the entire section display
+    main_container = st.container()
     
-    section_name, question_ids = current_section
-    section_answers, all_answered = display_section(section_name, question_ids, st.session_state.all_answers)
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.session_state.current_section > 0:
-            if st.button("Previous Section"):
-                st.session_state.current_section -= 1
-                st.rerun()
-    
-    with col2:
-        st.write(f"Section {st.session_state.current_section + 1} of {len(SECTIONS)}")
-    
-    with col3:
-        if st.session_state.current_section < len(SECTIONS) - 1:
-            if all_answered:
-                if st.button("Next Section"):
+    with main_container:
+        sections_list = list(SECTIONS.items())
+        current_section = sections_list[st.session_state.current_section]
+        
+        section_name, question_ids = current_section
+        section_answers, all_answered = display_section(section_name, question_ids, st.session_state.all_answers)
+        
+        # Navigation buttons
+        nav_cols = st.columns(3)
+        
+        with nav_cols[0]:
+            if st.session_state.current_section > 0:
+                if st.button("Previous Section"):
                     st.session_state.all_answers.update(section_answers)
-                    st.session_state.current_section += 1
+                    st.session_state.current_section -= 1
                     st.rerun()
-            else:
-                st.warning("Please answer all questions")
-        elif all_answered:
-            if st.button("Complete"):
-                st.session_state.all_answers.update(section_answers)
-                if save_to_google_sheets(st.session_state.all_answers):
-                    st.success("All sections completed and saved to Google Sheets!")
+        
+        with nav_cols[1]:
+            st.write(f"Section {st.session_state.current_section + 1} of {len(SECTIONS)}")
+        
+        with nav_cols[2]:
+            if st.session_state.current_section < len(SECTIONS) - 1:
+                if all_answered:
+                    if st.button("Next Section"):
+                        st.session_state.all_answers.update(section_answers)
+                        st.session_state.current_section += 1
+                        st.rerun()
                 else:
-                    st.success("All sections completed!")
-                    st.warning("Could not save to Google Sheets")
+                    st.warning("Please answer all questions")
+            elif all_answered:
+                if st.button("Complete"):
+                    st.session_state.all_answers.update(section_answers)
+                    if save_to_google_sheets(st.session_state.all_answers):
+                        st.success("All sections completed and saved to Google Sheets!")
+                    else:
+                        st.success("All sections completed!")
+                        st.warning("Could not save to Google Sheets")
+
 
 def main():
     st.set_page_config(layout="wide")
     st.title("Vanderbilt Psychology Teaching Inventory Helper")
     
+    # Initialize session state
+    if 'analyzed_answers' not in st.session_state:
+        st.session_state.analyzed_answers = None
+    
+    if 'evidence' not in st.session_state:
+        st.session_state.evidence = {}
+    
     st.write("""
+    This is an inventory of teaching practices as they apply for a specific course in a specific semester. 
+    This information is collected only to help us better understand how we teach in our larger
+    courses (it will not be used for any evaluation).
     The Full inventory has several questions but I want to help you answer them as fast as possible. 
     If you have a syllabus for the course, or any other document relevant to your teaching practices 
     in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions
     manually.
+    At the end, we will provide you with suggestions for information to add to your syllabus.
     """)
     
-    # File uploaders
+    # File uploaders in columns
     col1, col2 = st.columns(2)
     with col1:
         file1 = st.file_uploader("Upload your syllabus", 
@@ -512,22 +542,14 @@ def main():
                                 type=["pdf", "docx"],
                                 key="file2")
     
-    if 'analyzed_answers' not in st.session_state:
-        st.session_state.analyzed_answers = None
-    
-    # Add a start button
-    start_button = st.button("Start with these documents")
-    
-    # Only process files when start button is clicked
-    if start_button:
+    # Start button
+    if st.button("Start with these documents"):
         with st.spinner('Processing documents...'):
-            # Process first file
+            # Process uploaded files
             content1, filename1 = process_uploaded_file(file1) if file1 else (None, None)
-            
-            # Process second file if it exists
             content2, filename2 = process_uploaded_file(file2) if file2 else (None, None)
             
-            if content1 or file1 is None:  # Proceed if we have content or no file was uploaded
+            if content1 or file1 is None:
                 if content1:
                     st.success("Document(s) processed successfully!")
                 
@@ -537,10 +559,9 @@ def main():
                         if response:
                             st.session_state.analyzed_answers = parse_llm_response(response)
                     else:
-                        # If no files uploaded, start with empty answers
                         st.session_state.analyzed_answers = {}
     
-    # Only show sections after processing or if we're already in the middle of sections
+    # Display sections if we have answers or are in progress
     if st.session_state.analyzed_answers is not None or 'current_section' in st.session_state:
         process_sections(st.session_state.analyzed_answers)
 
