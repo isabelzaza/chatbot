@@ -133,10 +133,15 @@ Must connect skills to particular content/activities
 
 Q9 (Online Discussions):
 Look for:
-- Discussion boards
+- Discussion board
+- posting or sharing comments
 - Online forums
 - Required posting/responses
-Must explicitly mention platform used for discussions
+
+Q10 (course website):
+Look for:
+- Brightspace, Canvas etc.
+- mention of a "course website"
 
 Q27/28 (Response Systems):
 Look for:
@@ -647,10 +652,14 @@ def main():
                 st.write(f"Completed {st.session_state.current_section + 1} of {len(SECTIONS)} sections")
         
         st.write("""
-        The Full inventory has several questions but I want to help you answer them as fast as possible. 
-        If you have a syllabus for the course, or any other document relevant to your teaching practices 
-        in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions
-        manually.
+        This is an inventory of teaching practices as they apply for a specific course in a specific semester. 
+    This information is collected only to help us better understand how we teach in our larger
+    courses (it will not be used for any evaluation).
+    The Full inventory has several questions but I want to help you answer them as fast as possible. 
+    If you have a syllabus for the course, or any other document relevant to your teaching practices 
+    in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions
+    manually.   At the end, I will provide you with suggestions for information to add to your syllabus.
+
         """)
         
         # Initialize session state
