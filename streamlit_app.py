@@ -79,6 +79,9 @@ INVENTORY_PROMPT = """
 Based on the provided document(s), analyze and attempt to answer ALL questions from the Vanderbilt Psychology Teaching Inventory (Q1 through Q52). 
 Consider ALL provided documents together and try to find answers for every question.
 
+Note: The semester and year information might be included in the document filenames, 
+please check both the document content and filenames when looking for this information.
+
 
 Be precise and only extract information that EXACTLY matches what is asked for. For example:
 - For instructor name, look for lines starting with "Instructor:" or similar
@@ -140,10 +143,11 @@ def read_docx(file):
 
 def process_uploaded_file(uploaded_file):
     if uploaded_file is None:
-        return None
+        return None, None
     
     try:
         file_bytes = uploaded_file.getvalue()
+        filename = uploaded_file.name  # Get the filename
         
         if uploaded_file.type == "application/pdf":
             text = read_pdf(io.BytesIO(file_bytes))
@@ -151,12 +155,12 @@ def process_uploaded_file(uploaded_file):
             text = read_docx(io.BytesIO(file_bytes))
         else:
             st.error("Unsupported file type. Please upload a PDF or Word document.")
-            return None
+            return None, None
             
-        return text
+        return text, filename
     except Exception as e:
         st.error(f"Error processing file: {str(e)}")
-        return None
+        return None, None
 
 def save_to_google_sheets(answers):
     """Save answers to Google Sheets"""
@@ -258,7 +262,7 @@ def parse_llm_response(response_text):
     return answers
 
 # LLM Request Function
-def make_llm_request(file_content1, file_content2=None):
+def make_llm_request(file_content1, filename1, file_content2=None, filename2=None):
     """Make LLM request with support for one or two documents"""
     url = "https://prod-api.vanderbilt.ai/chat"
     
@@ -274,9 +278,9 @@ def make_llm_request(file_content1, file_content2=None):
     }
 
     # Prepare document content
-    documents_text = "=== DOCUMENT 1 ===\n" + file_content1
-    if file_content2:
-        documents_text += "\n\n=== DOCUMENT 2 ===\n" + file_content2
+   documents_text = f"=== DOCUMENT 1 (Filename: {filename1}) ===\n" + file_content1
+    if file_content2 and filename2:
+        documents_text += f"\n\n=== DOCUMENT 2 (Filename: {filename2}) ===\n" + file_content2
 
     # Use the existing INVENTORY_PROMPT template
     prompt = INVENTORY_PROMPT.format(documents=documents_text)
@@ -482,10 +486,10 @@ def main():
     if start_button:
         with st.spinner('Processing documents...'):
             # Process first file
-            content1 = process_uploaded_file(file1) if file1 else None
+            content1, filename1 = process_uploaded_file(file1) if file1 else (None, None)
             
             # Process second file if it exists
-            content2 = process_uploaded_file(file2) if file2 else None
+            content2, filename2 = process_uploaded_file(file2) if file2 else (None, None)
             
             if content1 or file1 is None:  # Proceed if we have content or no file was uploaded
                 if content1:
@@ -493,11 +497,9 @@ def main():
                 
                 if st.session_state.analyzed_answers is None:
                     if content1:
-                        response = make_llm_request(content1, content2)
+                        response = make_llm_request(content1, filename1, content2, filename2)
                         if response:
                             st.session_state.analyzed_answers = parse_llm_response(response)
-                            if st.checkbox("Show parsed answers"):
-                                st.write(st.session_state.analyzed_answers)
                     else:
                         # If no files uploaded, start with empty answers
                         st.session_state.analyzed_answers = {}
