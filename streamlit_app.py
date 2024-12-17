@@ -244,10 +244,11 @@ def parse_llm_response(response_text):
     answers = {}
     evidence = {}
     current_question = None
+    current_evidence = None
     
     try:
         lines = response_text.split('\n')
-        for line in lines:
+        for i, line in enumerate(lines):
             line = line.strip()
             if not line:
                 continue
@@ -256,42 +257,42 @@ def parse_llm_response(response_text):
             if line.startswith('Q') and ':' in line:
                 q_part = line.split(':')[0].strip()
                 if q_part in INVENTORY_QUESTIONS:
+                    # If we have evidence but no answer for the previous question, try to infer answer
+                    if current_question and current_question not in answers and current_question in evidence:
+                        inferred_answer = infer_answer_from_evidence(current_question, evidence[current_question])
+                        if inferred_answer:
+                            answers[current_question] = inferred_answer
+                    
                     current_question = q_part
+                    current_evidence = None
+                    
+            # Check for evidence line
+            elif line.startswith('Evidence:') and current_question:
+                current_evidence = line.replace('Evidence:', '').strip()
+                evidence[current_question] = current_evidence
+                
+                # If we have evidence but no answer yet, try to infer answer
+                if current_question not in answers:
+                    inferred_answer = infer_answer_from_evidence(current_question, current_evidence)
+                    if inferred_answer:
+                        answers[current_question] = inferred_answer
                     
             # Check for answer line
             elif line.startswith('Answer:') and current_question:
                 answer_text = line.replace('Answer:', '').strip()
-                
-                # Convert answer text to appropriate format based on question type
-                q_format = INVENTORY_QUESTIONS[current_question]["format"]
-                if q_format == "y/n":
-                    # Look for yes/no indicators in the answer
-                    answer_text = answer_text.lower()
-                    if any(word in answer_text for word in ['yes', 'does', 'do', 'provides', 'has']):
-                        answers[current_question] = "Yes"
-                    elif any(word in answer_text for word in ['no', 'does not', "doesn't", 'do not', "don't"]):
-                        answers[current_question] = "No"
-                elif q_format.startswith("choice:"):
-                    options = q_format.split(":")[1].strip().split("/")
-                    # Try to match answer text to one of the options
-                    for option in options:
-                        if option.lower() in answer_text.lower():
-                            answers[current_question] = option
-                elif q_format == "percentage (0 to 100)" or q_format == "number (minutes)" or q_format == "number":
-                    # Extract numbers from the answer
-                    import re
-                    numbers = re.findall(r'\d+', answer_text)
-                    if numbers:
-                        answers[current_question] = numbers[0]
-                else:  # text format
-                    answers[current_question] = answer_text
-                    
-            # Store evidence
-            elif line.startswith('Evidence:') and current_question:
-                evidence[current_question] = line.replace('Evidence:', '').strip()
-                    
+                processed_answer = process_answer_text(current_question, answer_text)
+                if processed_answer:
+                    answers[current_question] = processed_answer
+
     except Exception as e:
         st.error(f"Error parsing LLM response: {str(e)}")
+    
+    # Final pass: check for questions with evidence but no answers
+    for q_id in evidence:
+        if q_id not in answers:
+            inferred_answer = infer_answer_from_evidence(q_id, evidence[q_id])
+            if inferred_answer:
+                answers[q_id] = inferred_answer
     
     # Store evidence in session state
     st.session_state.evidence = evidence
@@ -508,62 +509,228 @@ def process_sections(analyzed_answers):
                         st.success("All sections completed!")
                         st.warning("Could not save to Google Sheets")
 
+def process_answer_text(question_id, answer_text):
+    """Process answer text based on question format"""
+    if not answer_text:
+        return None
+        
+    q_format = INVENTORY_QUESTIONS[question_id]["format"]
+    answer_text = answer_text.lower()
+    
+    try:
+        if q_format == "y/n":
+            # Extended yes/no detection
+            yes_indicators = ['yes', 'does', 'do', 'provides', 'has', 'used', 'given', 'shown', 'true', 'correct']
+            no_indicators = ['no', 'does not', "doesn't", 'do not', "don't", 'not used', 'not given', 'false']
+            
+            if any(indicator in answer_text for indicator in yes_indicators):
+                return "Yes"
+            elif any(indicator in answer_text for indicator in no_indicators):
+                return "No"
+                
+        elif q_format.startswith("choice:"):
+            options = q_format.split(":")[1].strip().split("/")
+            for option in options:
+                if option.lower() in answer_text:
+                    return option
+                    
+        elif q_format in ["percentage (0 to 100)", "number (minutes)", "number"]:
+            import re
+            numbers = re.findall(r'\d+', answer_text)
+            if numbers:
+                num = int(numbers[0])
+                if q_format == "percentage (0 to 100)" and num <= 100:
+                    return num
+                elif q_format == "number (minutes)" or q_format == "number":
+                    return num
+                    
+        else:  # text format
+            return answer_text.strip()
+            
+    except Exception as e:
+        st.error(f"Error processing answer text for {question_id}: {str(e)}")
+    
+    return None
+
+def infer_answer_from_evidence(question_id, evidence_text):
+    """Attempt to infer an answer from evidence text"""
+    if not evidence_text:
+        return None
+        
+    try:
+        q_format = INVENTORY_QUESTIONS[question_id]["format"]
+        evidence_text = evidence_text.lower()
+        
+        if q_format == "y/n":
+            # Look for positive indicators in evidence
+            positive_indicators = [
+                'yes', 'does', 'do', 'provides', 'has', 'used', 'given', 'shown',
+                'available', 'included', 'required', 'expected', 'will be', 'must',
+                'students should', 'students will', 'students are'
+            ]
+            # Look for negative indicators in evidence
+            negative_indicators = [
+                'no', 'not', "don't", 'does not', "doesn't", 'do not',
+                'unavailable', 'excluded', 'forbidden', 'prohibited'
+            ]
+            
+            # Check for positive indicators first
+            if any(indicator in evidence_text for indicator in positive_indicators):
+                return "Yes"
+            # Then check for negative indicators
+            elif any(indicator in evidence_text for indicator in negative_indicators):
+                return "No"
+                
+        elif q_format.startswith("choice:"):
+            options = q_format.split(":")[1].strip().split("/")
+            # Look for option matches in evidence
+            for option in options:
+                if option.lower() in evidence_text:
+                    return option
+                    
+        elif q_format in ["percentage (0 to 100)", "number (minutes)", "number"]:
+            import re
+            numbers = re.findall(r'\d+', evidence_text)
+            if numbers:
+                num = int(numbers[0])
+                if q_format == "percentage (0 to 100)" and num <= 100:
+                    return num
+                elif q_format == "number (minutes)" or q_format == "number":
+                    return num
+                    
+        else:  # text format
+            # For text format, extract meaningful content from evidence
+            # Remove common quote markers and clean up
+            cleaned_text = evidence_text.replace('"', '').replace('"', '').strip()
+            if len(cleaned_text) > 0:
+                return cleaned_text
+                
+    except Exception as e:
+        st.error(f"Error inferring answer from evidence for {question_id}: {str(e)}")
+    
+    return None
+
+def reset_form():
+    """Reset all form state"""
+    for key in ['analyzed_answers', 'current_section', 'all_answers', 'evidence']:
+        if key in st.session_state:
+            del st.session_state[key]
 
 def main():
     st.set_page_config(layout="wide")
-    st.title("Vanderbilt Psychology Teaching Inventory Helper")
     
-    # Initialize session state
-    if 'analyzed_answers' not in st.session_state:
-        st.session_state.analyzed_answers = None
-    
-    if 'evidence' not in st.session_state:
-        st.session_state.evidence = {}
-    
-    st.write("""
-    This is an inventory of teaching practices as they apply for a specific course in a specific semester. 
-    This information is collected only to help us better understand how we teach in our larger
-    courses (it will not be used for any evaluation).
-    The Full inventory has several questions but I want to help you answer them as fast as possible. 
-    If you have a syllabus for the course, or any other document relevant to your teaching practices 
-    in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions
-    manually.
-    At the end, we will provide you with suggestions for information to add to your syllabus.
-    """)
-    
-    # File uploaders in columns
-    col1, col2 = st.columns(2)
-    with col1:
-        file1 = st.file_uploader("Upload your syllabus", 
-                                type=["pdf", "docx"],
-                                key="file1")
-    with col2:
-        file2 = st.file_uploader("Upload any additional teaching document (optional)", 
-                                type=["pdf", "docx"],
-                                key="file2")
-    
-    # Start button
-    if st.button("Start with these documents"):
-        with st.spinner('Processing documents...'):
-            # Process uploaded files
-            content1, filename1 = process_uploaded_file(file1) if file1 else (None, None)
-            content2, filename2 = process_uploaded_file(file2) if file2 else (None, None)
+    # Add error boundary
+    try:
+        st.title("Vanderbilt Psychology Teaching Inventory Helper")
+        
+        # Add Reset button in sidebar
+        with st.sidebar:
+            if st.button("Reset Form"):
+                reset_form()
+                st.rerun()
             
-            if content1 or file1 is None:
-                if content1:
-                    st.success("Document(s) processed successfully!")
+            # Add help text
+            st.markdown("---")
+            st.markdown("""
+            ### Instructions
+            1. Upload your syllabus (PDF or Word)
+            2. Optionally upload additional documents
+            3. Click 'Start' to begin
+            4. Review and edit pre-filled answers
+            5. Navigate through sections
+            """)
+            
+            # Add progress indicator
+            if 'current_section' in st.session_state:
+                progress = (st.session_state.current_section + 1) / len(SECTIONS)
+                st.progress(progress)
+                st.write(f"Completed {st.session_state.current_section + 1} of {len(SECTIONS)} sections")
+        
+        st.write("""
+        The Full inventory has several questions but I want to help you answer them as fast as possible. 
+        If you have a syllabus for the course, or any other document relevant to your teaching practices 
+        in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions
+        manually.
+        """)
+        
+        # Initialize session state
+        if 'analyzed_answers' not in st.session_state:
+            st.session_state.analyzed_answers = None
+        
+        if 'evidence' not in st.session_state:
+            st.session_state.evidence = {}
+        
+        # File uploaders in columns
+        col1, col2 = st.columns(2)
+        with col1:
+            file1 = st.file_uploader("Upload your syllabus", 
+                                    type=["pdf", "docx"],
+                                    key="file1")
+        with col2:
+            file2 = st.file_uploader("Upload any additional teaching document (optional)", 
+                                    type=["pdf", "docx"],
+                                    key="file2")
+        
+        # Start button
+        start_col1, start_col2 = st.columns([1, 3])
+        with start_col1:
+            start_button = st.button("Start with these documents")
+        
+        if start_button:
+            with st.spinner('Processing documents...'):
+                try:
+                    # Process uploaded files
+                    content1, filename1 = process_uploaded_file(file1) if file1 else (None, None)
+                    content2, filename2 = process_uploaded_file(file2) if file2 else (None, None)
+                    
+                    if content1 or file1 is None:
+                        if content1:
+                            st.success("Document(s) processed successfully!")
+                        
+                        if st.session_state.analyzed_answers is None:
+                            if content1:
+                                response = make_llm_request(content1, filename1, content2, filename2)
+                                if response:
+                                    st.session_state.analyzed_answers = parse_llm_response(response)
+                                    if not st.session_state.analyzed_answers:
+                                        st.warning("No answers could be extracted from the documents. You can still fill them in manually.")
+                            else:
+                                st.session_state.analyzed_answers = {}
+                except Exception as e:
+                    st.error(f"Error processing documents: {str(e)}")
+                    st.warning("You can proceed with manual entry or try uploading the documents again.")
+                    st.session_state.analyzed_answers = {}
+        
+        # Display sections if we have answers or are in progress
+        if st.session_state.analyzed_answers is not None or 'current_section' in st.session_state:
+            try:
+                process_sections(st.session_state.analyzed_answers)
+            except Exception as e:
+                st.error(f"Error displaying form: {str(e)}")
+                if st.button("Restart Form"):
+                    reset_form()
+                    st.rerun()
+        
+        # Add footer with save status
+        if 'all_answers' in st.session_state and st.session_state.all_answers:
+            st.markdown("---")
+            st.markdown("*Your answers are automatically saved in the browser. You can close and return later.*")
+            
+            # Add download button for answers
+            if st.download_button(
+                "Download Answers as JSON",
+                data=json.dumps(st.session_state.all_answers, indent=2),
+                file_name="inventory_answers.json",
+                mime="application/json"
+            ):
+                st.success("Answers downloaded successfully!")
                 
-                if st.session_state.analyzed_answers is None:
-                    if content1:
-                        response = make_llm_request(content1, filename1, content2, filename2)
-                        if response:
-                            st.session_state.analyzed_answers = parse_llm_response(response)
-                    else:
-                        st.session_state.analyzed_answers = {}
-    
-    # Display sections if we have answers or are in progress
-    if st.session_state.analyzed_answers is not None or 'current_section' in st.session_state:
-        process_sections(st.session_state.analyzed_answers)
+    except Exception as e:
+        st.error("An unexpected error occurred. Please try refreshing the page.")
+        st.error(f"Error details: {str(e)}")
+        if st.button("Reset Application"):
+            reset_form()
+            st.rerun()
 
 if __name__ == "__main__":
     main()
