@@ -154,6 +154,19 @@ Q29/30 (Homework):
 - Q30: Graded assignments/required work
 Check if points/grades assigned
 
+Q31 (Project with options):
+Look for:
+-discussion of a project or assignment, with "option(s)" or "choice(s)"
+
+Q33 (Team work):
+Look for:
+-Group work; group assignment
+
+Q35 (revision based on feedback):
+Look for:
+- mention of "revision" or "revise"
+- feedback
+
 Q45 (TAs/LAs):
 Look for:
 - "Teaching assistants" sections
@@ -507,13 +520,36 @@ def process_sections(analyzed_answers):
                 else:
                     st.warning("Please answer all questions")
             elif all_answered:
+                # Update answers before showing complete button
+                st.session_state.all_answers.update(section_answers)
+                
+                # Complete button and subsequent actions
                 if st.button("Complete"):
-                    st.session_state.all_answers.update(section_answers)
                     if save_to_google_sheets(st.session_state.all_answers):
                         st.success("All sections completed and saved to Google Sheets!")
+                        
+                        # Show suggestions option after successful save
+                        st.markdown("---")
+                        suggestions_wanted = st.radio(
+                            "Would you like ideas on what could be added to your next syllabus for this course?",
+                            options=["Yes", "No"],
+                            index=None,
+                            horizontal=True,
+                            key="suggestions_radio"
+                        )
+                        
+                        if suggestions_wanted == "Yes":
+                            if st.button("Generate Syllabus Suggestions", key="generate_suggestions"):
+                                suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
+                                if suggestions:
+                                    st.markdown("### Suggested Syllabus Additions")
+                                    st.markdown(suggestions)
+                                    st.markdown("---")
+                                    st.info("You can copy and adapt these suggestions for your syllabus. Remember to customize the language and add course-specific details.")
                     else:
-                        st.success("All sections completed!")
-                        st.warning("Could not save to Google Sheets")
+                        st.error("Could not save to Google Sheets")
+                else:
+                    st.warning("Please click Complete to finish and save your responses")
 
 def process_answer_text(question_id, answer_text):
     """Process answer text based on question format"""
@@ -621,6 +657,119 @@ def reset_form():
     for key in ['analyzed_answers', 'current_section', 'all_answers', 'evidence']:
         if key in st.session_state:
             del st.session_state[key]
+
+def make_llm_request_for_suggestions(prompt):
+    """Make LLM request specifically for syllabus suggestions"""
+    url = "https://prod-api.vanderbilt.ai/chat"
+    
+    try:
+        API_KEY = st.secrets["AMPLIFY_API_KEY"]
+    except KeyError:
+        st.error("API key not found in secrets.")
+        return None
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}"
+    }
+
+    messages = [
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+
+    payload = {
+        "data": {
+            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "temperature": 0.7,  # Slightly higher temperature for more creative suggestions
+            "max_tokens": 4096,
+            "dataSources": [],
+            "messages": messages,
+            "options": {
+                "ragOnly": False,
+                "skipRag": True,
+                "model": {"id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
+                "prompt": prompt,
+            },
+        }
+    }
+
+    try:
+        with st.spinner('Generating syllabus suggestions...'):
+            response = requests.post(url, headers=headers, data=json.dumps(payload))
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                return response_data.get("data", "")
+            else:
+                st.error(f"Request failed with status code {response.status_code}")
+                return None
+    except requests.exceptions.RequestException as e:
+        st.error(f"An error occurred: {str(e)}")
+        return None
+
+def generate_syllabus_suggestions(answers):
+    """Generate suggestions for syllabus improvements based on inventory answers"""
+    
+    # Questions to skip (not typically in syllabus or practice-based)
+    SKIP_QUESTIONS = set([f"Q{i}" for i in range(1, 5)] +  # Basic info
+                        [f"Q{i}" for i in range(20, 26)] +  # In-class practices
+                        ["Q34"] +  # Feedback practices
+                        [f"Q{i}" for i in range(45, 53)])  # TA and collaboration info
+    
+    # Create prompt for LLM
+    prompt = """As an expert in course design and syllabus development, analyze these teaching inventory answers 
+    and provide specific recommendations for syllabus content. Focus on creating clear, student-centered language 
+    that documents both existing practices and potential improvements.
+
+    For each relevant area, provide:
+    1. A brief explanation of why this information is valuable to students
+    2. Sample syllabus language that can be directly adapted
+    3. Notes on what course-specific details should be added
+
+    Pay special attention to practices already being used (marked 'Yes') that should be documented in the syllabus.
+    
+    Consider organizing suggestions into these common syllabus sections:
+    - Course Materials and Resources
+    - Learning Objectives and Outcomes
+    - Course Policies (including AI/LLM policies)
+    - Assignments and Assessments
+    - Student Support and Resources
+    - Course Communication
+    
+    Current Teaching Practices (based on inventory answers):
+    """
+    
+    # Add relevant answers to prompt
+    suggestions_needed = []
+    for q_id, answer in answers.items():
+        if q_id not in SKIP_QUESTIONS and answer:  # Only include questions with answers
+            question_text = INVENTORY_QUESTIONS[q_id]["question"]
+            if answer == "Yes":
+                suggestions_needed.append(f"✓ {question_text}")
+            elif answer == "No":
+                suggestions_needed.append(f"○ {question_text}")
+            else:
+                suggestions_needed.append(f"• {question_text}: {answer}")
+    
+    prompt += "\n".join(suggestions_needed)
+    
+    # Add specific guidance for the response
+    prompt += """
+
+    For your response:
+    1. Focus on practical, specific language that can be directly adapted for a syllabus
+    2. Group related suggestions together under appropriate syllabus sections
+    3. Use clear, student-centered language that explains both what will be done and why it benefits students
+    4. Include guidance on what course-specific details the instructor should add
+    5. Prioritize documenting existing practices (marked with ✓) while also suggesting improvements for areas marked with ○
+
+    Please provide your recommendations in a clear, organized format that makes it easy for instructors to adapt 
+    and integrate into their syllabi."""
+
+    return make_llm_request_for_suggestions(prompt)
 
 def main():
     st.set_page_config(layout="wide")
