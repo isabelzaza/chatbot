@@ -567,7 +567,7 @@ def process_sections(analyzed_answers):
                         st.error("Could not save to Google Sheets")
                 else:
                     st.warning("Please click Complete to finish and save your responses")
-                    
+
 def process_answer_text(question_id, answer_text):
     """Process answer text based on question format"""
     if not answer_text:
@@ -737,18 +737,12 @@ def generate_syllabus_suggestions(answers):
                         [f"Q{i}" for i in range(45, 53)])  # TA and collaboration info
     
     # Create prompt for LLM
-    prompt = """As an expert in course design and syllabus development, analyze these teaching inventory answers 
-    and provide specific recommendations for syllabus content. Focus on creating clear, student-centered language 
-    that documents both existing practices and potential improvements.
-
-    For each relevant area, provide:
-    1. A brief explanation of why this information is valuable to students
-    2. Sample syllabus language that can be directly adapted
-    3. Notes on what course-specific details should be added
-
-    Pay special attention to practices already being used (marked 'Yes') that should be documented in the syllabus.
+    prompt = """Based on these teaching inventory answers, provide sample syllabus text that is clear, 
+    direct, and student-friendly. For each section:
+    1. Provide ready-to-use syllabus language in plain English (avoid jargon and words like "utilize")
+    2. Add brief notes about what specific details the instructor should add
     
-    Consider organizing suggestions into these common syllabus sections:
+    Organize the suggestions into these syllabus sections:
     - Course Materials and Resources
     - Learning Objectives and Outcomes
     - Course Policies (including AI/LLM policies)
@@ -756,8 +750,45 @@ def generate_syllabus_suggestions(answers):
     - Student Support and Resources
     - Course Communication
     
+    Format your response as:
+    [Section Name]
+    
+    [Sample syllabus text]
+    
+    Notes: [What specific information should be added]
+    
+    ---
+    
     Current Teaching Practices (based on inventory answers):
     """
+    
+    # Add relevant answers to prompt
+    suggestions_needed = []
+    for q_id, answer in answers.items():
+        if q_id not in SKIP_QUESTIONS and answer:  # Only include questions with answers
+            question_text = INVENTORY_QUESTIONS[q_id]["question"]
+            if answer == "Yes":
+                suggestions_needed.append(f"✓ {question_text}")
+            elif answer == "No":
+                suggestions_needed.append(f"○ {question_text}")
+            else:
+                suggestions_needed.append(f"• {question_text}: {answer}")
+    
+    prompt += "\n".join(suggestions_needed)
+    
+    # Add specific guidance for the response
+    prompt += """
+
+    For your response:
+    1. Write in clear, simple language that students will easily understand
+    2. Avoid academic jargon and complex terminology
+    3. Focus on what will be done in the course
+    4. Include notes about specific details the instructor should add
+    5. Present the text exactly as it could appear in a syllabus
+    
+    Do not include explanations - only provide the sample syllabus text and notes for customization."""
+
+    return make_llm_request_for_suggestions(prompt)
     
     # Add relevant answers to prompt
     suggestions_needed = []
@@ -791,50 +822,26 @@ def generate_syllabus_suggestions(answers):
 def main():
     st.set_page_config(layout="wide")
     
-    # Add error boundary
-    try:
+    # Initialize session state
+    if 'analyzed_answers' not in st.session_state:
+        st.session_state.analyzed_answers = None
+    
+    if 'evidence' not in st.session_state:
+        st.session_state.evidence = {}
+        
+    if 'started' not in st.session_state:
+        st.session_state.started = False
+
+    # Only show upload page if not started
+    if not st.session_state.started:
         st.title("Vanderbilt Psychology Teaching Inventory Helper")
         
-        # Add Reset button in sidebar
-        with st.sidebar:
-            if st.button("Reset Form"):
-                reset_form()
-                st.rerun()
-            
-            # Add help text
-            st.markdown("---")
-            st.markdown("""
-            ### Instructions
-            1. Upload your syllabus (PDF or Word)
-            2. Optionally upload additional documents
-            3. Click 'Start' to begin
-            4. Review and edit pre-filled answers
-            5. Navigate through sections
-            """)
-            
-            # Add progress indicator
-            if 'current_section' in st.session_state:
-                progress = (st.session_state.current_section + 1) / len(SECTIONS)
-                st.progress(progress)
-                st.write(f"Completed {st.session_state.current_section + 1} of {len(SECTIONS)} sections")
-        
         st.write("""
-        This is an inventory of teaching practices as they apply for a specific course in a specific semester. 
-    This information is collected only to help us better understand how we teach in our larger
-    courses (it will not be used for any evaluation).
-    The Full inventory has several questions but I want to help you answer them as fast as possible. 
-    If you have a syllabus for the course, or any other document relevant to your teaching practices 
-    in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions
-    manually.   At the end, I will provide you with suggestions for information to add to your syllabus.
-
+        The Full inventory has several questions but I want to help you answer them as fast as possible. 
+        If you have a syllabus for the course, or any other document relevant to your teaching practices 
+        in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions
+        manually.
         """)
-        
-        # Initialize session state
-        if 'analyzed_answers' not in st.session_state:
-            st.session_state.analyzed_answers = None
-        
-        if 'evidence' not in st.session_state:
-            st.session_state.evidence = {}
         
         # File uploaders in columns
         col1, col2 = st.columns(2)
@@ -848,52 +855,32 @@ def main():
                                     key="file2")
         
         # Start button
-        start_col1, start_col2 = st.columns([1, 3])
-        with start_col1:
-            start_button = st.button("Start with these documents")
-        
-        if start_button:
+        if st.button("Start with these documents"):
             with st.spinner('Processing documents...'):
-                try:
-                    # Process uploaded files
-                    content1, filename1 = process_uploaded_file(file1) if file1 else (None, None)
-                    content2, filename2 = process_uploaded_file(file2) if file2 else (None, None)
-                    
-                    if content1 or file1 is None:
-                        if content1:
-                            st.success("Document(s) processed successfully!")
-                        
-                        if st.session_state.analyzed_answers is None:
-                            if content1:
-                                response = make_llm_request(content1, filename1, content2, filename2)
-                                if response:
-                                    st.session_state.analyzed_answers = parse_llm_response(response)
-                                    if not st.session_state.analyzed_answers:
-                                        st.warning("No answers could be extracted from the documents. You can still fill them in manually.")
-                            else:
-                                st.session_state.analyzed_answers = {}
-                except Exception as e:
-                    st.error(f"Error processing documents: {str(e)}")
-                    st.warning("You can proceed with manual entry or try uploading the documents again.")
-                    st.session_state.analyzed_answers = {}
-        
-        # Display sections if we have answers or are in progress
-        if st.session_state.analyzed_answers is not None or 'current_section' in st.session_state:
-            try:
-                process_sections(st.session_state.analyzed_answers)
-            except Exception as e:
-                st.error(f"Error displaying form: {str(e)}")
-                if st.button("Restart Form"):
-                    reset_form()
-                    st.rerun()
-        
+                # Process uploaded files
+                content1, filename1 = process_uploaded_file(file1) if file1 else (None, None)
+                content2, filename2 = process_uploaded_file(file2) if file2 else (None, None)
                 
-    except Exception as e:
-        st.error("An unexpected error occurred. Please try refreshing the page.")
-        st.error(f"Error details: {str(e)}")
-        if st.button("Reset Application"):
-            reset_form()
-            st.rerun()
+                if content1 or file1 is None:
+                    if content1:
+                        st.success("Document(s) processed successfully!")
+                    
+                    if st.session_state.analyzed_answers is None:
+                        if content1:
+                            response = make_llm_request(content1, filename1, content2, filename2)
+                            if response:
+                                st.session_state.analyzed_answers = parse_llm_response(response)
+                        else:
+                            st.session_state.analyzed_answers = {}
+                    
+                    # Set started to True and rerun to clear the page
+                    st.session_state.started = True
+                    st.rerun()
+    
+    # Show sections if we're started or have answers
+    else:
+        if st.session_state.analyzed_answers is not None or 'current_section' in st.session_state:
+            process_sections(st.session_state.analyzed_answers)
 
 if __name__ == "__main__":
     main()
