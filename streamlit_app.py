@@ -76,53 +76,89 @@ SECTIONS = {
 }
 # LLM Prompt Template
 INVENTORY_PROMPT = """
-Based on the provided document(s), analyze and attempt to answer ALL questions from the Vanderbilt Psychology Teaching Inventory (Q1 through Q52). 
-Consider ALL provided documents together and try to find answers for every question.
+Analyze the provided document(s) to answer ALL questions from the Vanderbilt Psychology Teaching Inventory (Q1-Q52). 
+Consider ALL provided documents together.
 
-Note: The semester and year information might be included in the document filenames, 
-please check both the document content and filenames when looking for this information.
+FORMAT GUIDELINES:
+For each answer you find, provide:
+1. Question number (Q1-Q52)
+2. Question text
+3. Answer - ONLY if explicitly found in documents
+4. Evidence: Quote "exactly as appears" (From Document 1/2)
 
+CORE QUESTIONS:
 
-Be precise and only extract information that EXACTLY matches what is asked for. For example:
-- For instructor name, look for lines starting with "Instructor:" or similar
-- For course number, look for exact course codes (e.g., PSY followed by numbers)
-- For semester and year, look for explicit semester names (Fall, Spring, etc.) and years
+Q1 (Instructor Name):
+- Look for lines with "Instructor:" or containing "Instructor"/"Professor" 
+- Must be followed by instructor's name
 
-*** RULES ***
-1. For Instructor Name:
-   - Should appear on a line that starts with "Instructor" or contain the keyword "Instructor" or "Professor" followed by the instructor's name.
+Q2 (Course Number):
+- Format: "PSY ####" (or NSC/BSCI etc.)
+- Appears near top of syllabus
+- Do not use course title or other text
 
-2. For Course Number:
-   - Should be in the format "PSY ####" where #### are digits (and PSY could be another code, like NSC or BSCI)
-   - The course number line will typically appear at or near the top of the syllabus.
-   - Do NOT use any other text as the course number. For example, do not use the course title, instructor’s name, or email address as the course number.
+Q3 (Semester/Year):
+- Look for full semester name + four-digit year
+- Check document names (e.g., "S2021", "F21")
+- Must have both semester and year explicitly stated
 
-3. For Semester and Year:
-   - This information could be in the name of the file that was uploaded (e.g., "S2021" or "F21")
-   - Could be a recognized semester name (e.g., "Spring", "Fall", "Summer") AND a four-digit year.
-   - Should be on the first page of the syllabus
-   - Could be abbreviated, like "F24" of "S25"
-   - Only use the exact semester and year stated. Do not infer or guess.
+Q5 (Topics List):
+Look in:
+- Course schedule/calendar sections
+- Course outline sections
+- Book chapter lists
+- Learning objectives
+Common formats:
+- Weekly schedules
+- Topic lists
+- Chapter headings
+- Course calendars
 
-*** EXAMPLES OF INCORRECT PARSING ***
-- Using "PSY 3785" as the instructor’s name.
-- Using "Professor Isabel Gauthier" as the course number.
-- Using "Spring" without a year as semester/year.
+Q6 (General Skills):
+Look for broad skills in:
+- Course objectives/goals
+- Learning outcomes
+Examples:
+- Critical thinking
+- Analysis
+- Problem-solving
+- Research methods
 
-For each answer you can determine from ANY of the documents, provide:
-1. The question number (Q1-Q52)
-2. The question text
-3. Your answer - ONLY if you find an exact match in either document
-4. The exact quote and which document it comes from
+Q7 (Topic-Specific Skills):
+Look for skills explicitly tied to:
+- Specific topics
+- Specific assignments
+- Course modules
+Must connect skills to particular content/activities
 
-Format your response as:
-Q[number]: [Question text]
-Answer: [Your answer]
-Evidence: [Quote "exactly as it appears" in document] (From Document 1/2)
+Q9 (Online Discussions):
+Look for:
+- Discussion boards
+- Online forums
+- Required posting/responses
+Must explicitly mention platform used for discussions
+
+Q27/28 (Response Systems):
+Look for:
+- TopHat, iClicker, etc.
+- Q27: Ungraded use ("practice", "demos")
+- Q28: Graded use ("points", "required")
+
+Q29/30 (Homework):
+- Q29: Ungraded practice/optional work
+- Q30: Graded assignments/required work
+Check if points/grades assigned
+
+Q45 (TAs/LAs):
+Look for:
+- "Teaching assistants" sections
+- Lists of TA names/emails
+- Mentions of "TA" or "LA"
+
+IMPORTANT: Only provide answers with explicit evidence from the documents. Do not infer or guess.
 
 The documents:
 {documents}
-
 
 """
 
