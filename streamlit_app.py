@@ -95,6 +95,7 @@ Be precise and only extract information that EXACTLY matches what is asked for. 
    - Do NOT use any other text as the course number. For example, do not use the course title, instructor’s name, or email address as the course number.
 
 3. For Semester and Year:
+   - This information could be in the name of the file that was uploaded (e.g., "S2021" or "F21")
    - Could be a recognized semester name (e.g., "Spring", "Fall", "Summer") AND a four-digit year.
    - Should be on the first page of the syllabus
    - Could be abbreviated, like "F24" of "S25"
