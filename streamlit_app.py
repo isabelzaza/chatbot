@@ -277,12 +277,12 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         "Authorization": f"Bearer {API_KEY}"
     }
 
-    # Prepare document content
-   documents_text = f"=== DOCUMENT 1 (Filename: {filename1}) ===\n" + file_content1
+ # Prepare document content
+    documents_text = f"=== DOCUMENT 1 (Filename: {filename1}) ===\n" + file_content1
     if file_content2 and filename2:
         documents_text += f"\n\n=== DOCUMENT 2 (Filename: {filename2}) ===\n" + file_content2
 
-    # Use the existing INVENTORY_PROMPT template
+ # Use the existing INVENTORY_PROMPT template
     prompt = INVENTORY_PROMPT.format(documents=documents_text)
 
     messages = [
