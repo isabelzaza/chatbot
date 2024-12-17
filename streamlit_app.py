@@ -486,8 +486,43 @@ def process_sections(analyzed_answers):
     
     if 'all_answers' not in st.session_state:
         st.session_state.all_answers = analyzed_answers or {}
+        
+    if 'completed' not in st.session_state:
+        st.session_state.completed = False
     
-    # Create a container for the entire section display
+    # If already completed, show completion page
+    if st.session_state.completed:
+        st.title("Thank you for completing the inventory!")
+        st.success("Your responses have been successfully uploaded to our database.")
+        
+        st.markdown("""
+        ### What's next?
+        Once we have collected enough data, we will share aggregate statistics with all faculty. 
+        We also plan to have a way for you to compare the results you entered to the distribution.
+        
+        In the mean time, if you have any questions or concerns about this inventory, contact Isabel.gauthier@vanderbilt.edu.
+        """)
+        
+        st.markdown("---")
+        
+        suggestions_wanted = st.radio(
+            "Would you like ideas on what could be added to your next syllabus for this course?",
+            options=["Yes", "No"],
+            index=None,
+            horizontal=True,
+            key="suggestions_radio"
+        )
+        
+        if suggestions_wanted == "Yes":
+            suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
+            if suggestions:
+                st.markdown("### Notes for future syllabus development")
+                st.markdown(suggestions)
+                st.info("You can copy these notes for future use when developing your syllabus.")
+        
+        return
+    
+    # Regular section processing for incomplete form
     main_container = st.container()
     
     with main_container:
@@ -526,31 +561,13 @@ def process_sections(analyzed_answers):
                 # Complete button and subsequent actions
                 if st.button("Complete"):
                     if save_to_google_sheets(st.session_state.all_answers):
-                        st.success("All sections completed and saved to Google Sheets!")
-                        
-                        # Show suggestions option after successful save
-                        st.markdown("---")
-                        suggestions_wanted = st.radio(
-                            "Would you like ideas on what could be added to your next syllabus for this course?",
-                            options=["Yes", "No"],
-                            index=None,
-                            horizontal=True,
-                            key="suggestions_radio"
-                        )
-                        
-                        if suggestions_wanted == "Yes":
-                            if st.button("Generate Syllabus Suggestions", key="generate_suggestions"):
-                                suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
-                                if suggestions:
-                                    st.markdown("### Suggested Syllabus Additions")
-                                    st.markdown(suggestions)
-                                    st.markdown("---")
-                                    st.info("You can copy and adapt these suggestions for your syllabus. Remember to customize the language and add course-specific details.")
+                        st.session_state.completed = True
+                        st.rerun()
                     else:
                         st.error("Could not save to Google Sheets")
                 else:
                     st.warning("Please click Complete to finish and save your responses")
-
+                    
 def process_answer_text(question_id, answer_text):
     """Process answer text based on question format"""
     if not answer_text:
