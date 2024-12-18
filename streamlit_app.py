@@ -516,7 +516,7 @@ def process_sections(analyzed_answers):
         if suggestions_wanted == "Yes":
             suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
             if suggestions:
-                st.markdown("### Notes for future syllabus development")
+                st.markdown("### Notes for future syllabus development, based on information you provided but was not in your syllabus")
                 st.markdown(suggestions)
                 st.info("You can copy these notes for future use when developing your syllabus.")
         
