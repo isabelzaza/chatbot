@@ -785,6 +785,7 @@ def generate_syllabus_suggestions(answers):
     3. Focus on what will be done in the course
     4. Include notes about specific details the instructor should add
     5. Present the text exactly as it could appear in a syllabus
+    6. Don't suggest anything about "Contact information" or "Student Support and Resources"
     
     Do not include explanations - only provide the sample syllabus text and notes for customization."""
 
