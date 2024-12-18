@@ -837,10 +837,13 @@ def main():
         st.title("Vanderbilt Psychology Teaching Inventory Helper")
         
         st.write("""
-        The Full inventory has several questions but I want to help you answer them as fast as possible. 
+        This is an inventory of teaching practices as they apply for a specific course in a 
+        specific semester. This information is collected only to help us better understand how we teach 
+        in our larger courses (it will not be used for any evaluation). The Full inventory has several
+        questions but I want to help you answer them as fast as possible.  
         If you have a syllabus for the course, or any other document relevant to your teaching practices 
-        in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions
-        manually.
+        in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions manually. 
+        At the end, I will provide you with suggestions for information to add to your syllabus.
         """)
         
         # File uploaders in columns
