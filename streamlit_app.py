@@ -409,32 +409,20 @@ def create_input_widget(question_id, question_info, current_value=None):
     
     # Handle TA-dependent questions (Q46 and Q47)
     if question_id in ["Q46", "Q47"]:
-        # First check Q45's answer in session state
+        # Check if Q45 is No
         has_no_tas = False
         if 'all_answers' in st.session_state:
             has_no_tas = st.session_state.all_answers.get("Q45") == "No"
-            if has_no_tas:
-                # Create the radio button but set it to "not applicable"
-                options = ["yes", "no", "not applicable"]
-                return st.radio(
-                    question_info["question"],
-                    options=options,
-                    index=2,  # Index for "not applicable"
-                    horizontal=True,
-                    key=f"input_{question_id}",
-                    disabled=True  # Disable the radio buttons
-                )
-                
-        # Also check current value of Q45 if it's being set currently
-        if 'current_form_data' in st.session_state and st.session_state.current_form_data.get("Q45") == "No":
-            options = ["yes", "no", "not applicable"]
+        
+        if has_no_tas:
+            # Return disabled radio group with "not applicable" selected
             return st.radio(
                 question_info["question"],
-                options=options,
-                index=2,  # Index for "not applicable"
-                horizontal=True,
+                options=["yes", "no", "not applicable"],
+                index=2,  # Set to "not applicable"
                 key=f"input_{question_id}",
-                disabled=True  # Disable the radio buttons
+                disabled=True,
+                horizontal=True
             )
     
     # For Q45, we need to update dependent questions when it changes
@@ -447,14 +435,15 @@ def create_input_widget(question_id, question_info, current_value=None):
             key=f"input_{question_id}"
         )
         
-        # If Q45 is set to No, update Q46 and Q47 in session state
-        if response == "No":
-            if 'all_answers' in st.session_state:
-                st.session_state.all_answers["Q46"] = "not applicable"
-                st.session_state.all_answers["Q47"] = "not applicable"
+        # If Q45 is set to No, immediately update Q46 and Q47
+        if response == "No" and 'all_answers' in st.session_state:
+            st.session_state.all_answers["Q46"] = "not applicable"
+            st.session_state.all_answers["Q47"] = "not applicable"
+            # Force a rerun to update the UI
+            st.rerun()
         
         return response
-            
+
     # Regular widget creation based on format
     if format_type == "y/n":
         return st.radio(
@@ -466,10 +455,17 @@ def create_input_widget(question_id, question_info, current_value=None):
         )
     elif format_type.startswith("choice:"):
         options = format_type.split(":")[1].strip().split("/")
+        
+        # For Q46 and Q47, make sure to use the correct index when "not applicable"
+        if question_id in ["Q46", "Q47"] and current_value == "not applicable":
+            index = len(options) - 1  # Last option should be "not applicable"
+        else:
+            index = options.index(current_value) if current_value in options else None
+            
         return st.radio(
             question_info["question"],
             options=options,
-            index=options.index(current_value) if current_value in options else None,
+            index=index,
             horizontal=True,
             key=f"input_{question_id}"
         )
@@ -478,14 +474,14 @@ def create_input_widget(question_id, question_info, current_value=None):
             question_info["question"],
             min_value=0,
             max_value=100,
-            value=int(current_value) if current_value is not None else None,
+            value=int(current_value) if current_value is not None and current_value != "" else None,
             key=f"input_{question_id}"
         )
     elif format_type == "number (minutes)" or format_type == "number":
         return st.number_input(
             question_info["question"],
             min_value=0,
-            value=int(current_value) if current_value is not None else None,
+            value=int(current_value) if current_value is not None and current_value != "" else None,
             key=f"input_{question_id}"
         )
     else:  # text format
