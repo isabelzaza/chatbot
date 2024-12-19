@@ -420,7 +420,7 @@ def create_input_widget(question_id, question_info, current_value=None):
         response = st.radio(
             question_info["question"],
             options=["No", "Yes"],
-            index=0 if current_value == "No" else 1 if current_value == "Yes" else None,
+            index=None if current_value is None else (0 if current_value == "No" else 1),
             horizontal=True,
             key=f"input_{question_id}"
         )
@@ -431,8 +431,14 @@ def create_input_widget(question_id, question_info, current_value=None):
 
     if question_id in ["Q46", "Q47"]:
         options = ["not applicable", "no", "yes"]
-        value = "not applicable" if has_no_tas else st.session_state.all_answers.get(question_id, current_value)
-        index = options.index(value) if value in options else 0
+        if has_no_tas:
+            value = "not applicable"
+        elif current_value is None:
+            value = None
+        else:
+            value = st.session_state.all_answers.get(question_id, current_value)
+        
+        index = options.index(value) if value in options else None
         return st.radio(
             question_info["question"],
             options=options,
