@@ -409,16 +409,34 @@ def create_input_widget(question_id, question_info, current_value=None):
     
     # Handle TA-dependent questions (Q46 and Q47)
     if question_id in ["Q46", "Q47"]:
-        # Check if Q45 (having TAs) is "No" either in session state or current value
+        # First check Q45's answer in session state
         has_no_tas = False
         if 'all_answers' in st.session_state:
             has_no_tas = st.session_state.all_answers.get("Q45") == "No"
-        
-        if has_no_tas:
-            # If there are no TAs, disable the widget and return "not applicable"
-            st.text(question_info["question"])
-            st.text("Not applicable (no TAs/LAs for this course)")
+            if has_no_tas:
+                return "not applicable"
+                
+        # Also check current value of Q45 if it's being set currently
+        if 'current_form_data' in st.session_state and st.session_state.current_form_data.get("Q45") == "No":
             return "not applicable"
+    
+    # For Q45, we need to update dependent questions when it changes
+    if question_id == "Q45":
+        response = st.radio(
+            question_info["question"],
+            options=["Yes", "No"],
+            index=0 if current_value == "Yes" else 1 if current_value == "No" else None,
+            horizontal=True,
+            key=f"input_{question_id}"
+        )
+        
+        # If Q45 is set to No, update Q46 and Q47 in session state
+        if response == "No":
+            if 'all_answers' in st.session_state:
+                st.session_state.all_answers["Q46"] = "not applicable"
+                st.session_state.all_answers["Q47"] = "not applicable"
+        
+        return response
             
     # Regular widget creation based on format
     if format_type == "y/n":
