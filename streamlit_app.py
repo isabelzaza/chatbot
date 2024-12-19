@@ -414,11 +414,28 @@ def create_input_widget(question_id, question_info, current_value=None):
         if 'all_answers' in st.session_state:
             has_no_tas = st.session_state.all_answers.get("Q45") == "No"
             if has_no_tas:
-                return "not applicable"
+                # Create the radio button but set it to "not applicable"
+                options = ["yes", "no", "not applicable"]
+                return st.radio(
+                    question_info["question"],
+                    options=options,
+                    index=2,  # Index for "not applicable"
+                    horizontal=True,
+                    key=f"input_{question_id}",
+                    disabled=True  # Disable the radio buttons
+                )
                 
         # Also check current value of Q45 if it's being set currently
         if 'current_form_data' in st.session_state and st.session_state.current_form_data.get("Q45") == "No":
-            return "not applicable"
+            options = ["yes", "no", "not applicable"]
+            return st.radio(
+                question_info["question"],
+                options=options,
+                index=2,  # Index for "not applicable"
+                horizontal=True,
+                key=f"input_{question_id}",
+                disabled=True  # Disable the radio buttons
+            )
     
     # For Q45, we need to update dependent questions when it changes
     if question_id == "Q45":
@@ -542,6 +559,9 @@ def process_sections(analyzed_answers):
         
     if 'completed' not in st.session_state:
         st.session_state.completed = False
+        
+    if 'saved_to_sheets' not in st.session_state:
+        st.session_state.saved_to_sheets = False
     
     # If already completed, show completion page
     if st.session_state.completed:
@@ -559,8 +579,10 @@ def process_sections(analyzed_answers):
         # Update answers with comments if provided
         if comments:
             st.session_state.all_answers["Q53"] = comments
-            # Update Google Sheets with the new comment
-            save_to_google_sheets(st.session_state.all_answers)
+            # Only save if we haven't saved before
+            if not st.session_state.saved_to_sheets:
+                save_to_google_sheets(st.session_state.all_answers)
+                st.session_state.saved_to_sheets = True
         
         st.markdown("---")
         
@@ -621,8 +643,10 @@ def process_sections(analyzed_answers):
                 
                 # Complete button and subsequent actions
                 if st.button("Complete"):
+                    # Only save if we haven't saved before
                     if save_to_google_sheets(st.session_state.all_answers):
                         st.session_state.completed = True
+                        st.session_state.saved_to_sheets = True
                         st.rerun()
                     else:
                         st.error("Could not save to Google Sheets")
