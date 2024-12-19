@@ -135,10 +135,12 @@ Must connect skills to particular content/activities
 
 Q9 (Online Discussions):
 Look for:
-- Discussion board
+- Discussion board (likely on Brightspace)
 - posting or sharing comments
 - Online forums
 - Required posting/responses
+- References to online participation
+- Mentions of posting/replying in participation sections
 
 Q10 (course website):
 Look for:
