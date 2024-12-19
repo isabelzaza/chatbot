@@ -902,6 +902,7 @@ def main():
         specific semester. This information is collected only to help us better understand how we teach 
         in our larger courses (it will not be used for any evaluation). The Full inventory has several
         questions but I want to help you answer them as fast as possible.
+        
         The inventory lists several evidence-based practices that are unlikely to all be used in the same
         course. Please answer conservatively, as we are looking for an accurate picture of what practices
         are really used in each of our classes.
