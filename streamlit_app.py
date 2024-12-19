@@ -411,68 +411,48 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         return None
 
 # UI Components
+def update_dependent_questions():
+    if st.session_state.input_Q45 == "No":
+        st.session_state.all_answers["Q46"] = "not applicable"
+        st.session_state.all_answers["Q47"] = "not applicable"
+
 def create_input_widget(question_id, question_info, current_value=None):
-    """Create the appropriate input widget based on question format"""
     format_type = question_info["format"]
     
-    # Check Q45's status first for Q46 and Q47
-    has_no_tas = False
-    if 'all_answers' in st.session_state:
-        has_no_tas = st.session_state.all_answers.get("Q45") == "No"
-    elif current_value == "No" and question_id == "Q45":
-        has_no_tas = True
+    has_no_tas = st.session_state.all_answers.get("Q45") == "No" if 'all_answers' in st.session_state else (current_value == "No" and question_id == "Q45")
 
-    # Special handling for Q46 and Q47
     if question_id in ["Q46", "Q47"] and has_no_tas:
         options = ["not applicable", "no", "yes"]
-        st.session_state.all_answers[question_id] = "not applicable"  # Force the state
         return st.radio(
             question_info["question"],
             options=options,
-            index=0,  # Set to "not applicable"
+            index=0,
             key=f"input_{question_id}",
             disabled=True,
             horizontal=True
         )
     
-    # For Q45, we need to update dependent questions when it changes
     if question_id == "Q45":
-        response = st.radio(
+        return st.radio(
+            question_info["question"],
+            options=["No", "Yes"],
+            index=0 if current_value == "No" else 1 if current_value == "Yes" else None,
+            horizontal=True,
+            key="input_Q45",
+            on_change=update_dependent_questions
+        )
+
+    if format_type == "y/n":
+        return st.radio(
             question_info["question"],
             options=["No", "Yes"],
             index=0 if current_value == "No" else 1 if current_value == "Yes" else None,
             horizontal=True,
             key=f"input_{question_id}"
         )
-    
-        # Update Q46 and Q47 states without forcing a rerun
-        if response == "No" and 'all_answers' in st.session_state:
-            st.session_state.all_answers["Q46"] = "not applicable"
-            st.session_state.all_answers["Q47"] = "not applicable"
-    
-        return response
-
-    # Regular widget creation based on format
-    if format_type == "y/n":
-        return st.radio(
-            question_info["question"],
-            options=["No", "Yes"],  # Changed order
-            index=0 if current_value == "No" else 1 if current_value == "Yes" else None,
-            horizontal=True,
-            key=f"input_{question_id}"
-        )
     elif format_type.startswith("choice:"):
         options = format_type.split(":")[1].strip().split("/")
-        
-        if current_value is None:
-            index = None
-        elif question_id in ["Q46", "Q47"]:
-            index = options.index(current_value) if current_value in options else None
-            if current_value == "not applicable":
-                index = 0
-        else:
-            index = options.index(current_value) if current_value in options else None
-            
+        index = options.index(current_value) if current_value in options else None
         return st.radio(
             question_info["question"],
             options=options,
@@ -495,13 +475,13 @@ def create_input_widget(question_id, question_info, current_value=None):
             value=int(current_value) if current_value is not None and current_value != "" else None,
             key=f"input_{question_id}"
         )
-    else:  # text format
+    else:
         return st.text_input(
             question_info["question"],
             value=str(current_value) if current_value is not None else "",
             key=f"input_{question_id}"
         )
-
+        
 def display_section(section_name, question_ids, current_answers):
     """Display a section of questions with appropriate input widgets"""
     st.subheader(section_name)
