@@ -31,11 +31,15 @@ INVENTORY_QUESTIONS = {
     "Q21": {"question": "In a typical class, what is the proportion of time for which students work in small groups?", "format": "percentage (0 to 100)"},
     "Q22": {"question": "In a typical class, what is the proportion of time for which you lecture?", "format": "percentage (0 to 100)"},
     "Q23": {"question": "What is the longest duration (in mins) you lecture before breaking into an entirely different activity (not just stopping to ask a question or invite questions)?", "format": "number (minutes)"},
-    "Q24": {"question": "How often do you use demonstrations, simulations, or videos?", "format": "choice: every class/every week/once in a while/rarely/never"},
+    "Q24": {"question": "How often do you use demonstrations, simulations, or videos?", 
+            "format": "choice: never/rarely/once in a while/every week/every class"},
     "Q25": {"question": "If you show a video, do you provide students with detailed instructions of what to look for in the video, and follow-up with a discussion?", "format": "y/n"},
-    "Q26": {"question": "How often do you talk about why the material might be useful or interesting from a student's point of view?", "format": "choice: every class/every week/once in a while/rarely/never"},
-    "Q27": {"question": "Do you use a response system (e.g., Top hat) for ungraded activities?", "format": "choice: every class/every week/once in a while/rarely/never"},
-    "Q28": {"question": "Do you use a response system (e.g., Top hat) for graded activities?", "format": "choice: every class/every week/once in a while/rarely/never"},
+    "Q26": {"question": "How often do you talk about why the material might be useful or interesting from a student's point of view?", 
+            "format": "choice: never/rarely/once in a while/every week/every class"},
+    "Q27": {"question": "Do you use a response system (e.g., Top hat) for ungraded activities?", 
+            "format": "choice: never/rarely/once in a while/every week/every class"},
+    "Q28": {"question": "Do you use a response system (e.g., Top hat) for graded activities?", 
+            "format": "choice: never/rarely/once in a while/every week/every class"},
     "Q29": {"question": "Do you give homework or practice problems that do not count towards grade?", "format": "y/n"},
     "Q30": {"question": "Do you give homework or problems that count towards grade?", "format": "y/n"},
     "Q31": {"question": "Do you assign a project or paper where students have some choice about the topic?", "format": "y/n"},
@@ -51,16 +55,20 @@ INVENTORY_QUESTIONS = {
     "Q41": {"question": "Do you use a pre-and-post test to measure how much students learn in the course?", "format": "y/n"},
     "Q42": {"question": "Do you ask students about their interest or feelings about the subject before and after the course?", "format": "y/n"},
     "Q43": {"question": "Do you give students some control over their learning, like choosing topics or how they will be graded?", "format": "y/n"},
-    "Q44": {"question": "Do you try new teaching methods or materials and measure how well they work?", "format": "choice: often/sometimes/rarely/never"},
+    "Q44": {"question": "Do you try new teaching methods or materials and measure how well they work?", 
+            "format": "choice: never/rarely/sometimes/often"},
     "Q45": {"question": "Do you have graduate TAs or undergraduate LAs for this course?", "format": "y/n"},
-    "Q46": {"question": "Do you provide TAs/LAs with some training on teaching methods?", "format": "choice: yes/no/not applicable"},
-    "Q47": {"question": "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing?", "format": "choice: yes/no/not applicable"},   "Q48": {"question": "Do you use teaching materials from other instructors?", "format": "y/n"},
+    "Q46": {"question": "Do you provide TAs/LAs with some training on teaching methods?", 
+            "format": "choice: not applicable/no/yes"},
+    "Q47": {"question": "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing?", 
+            "format": "choice: not applicable/no/yes"},
+    "Q48": {"question": "Do you use teaching materials from other instructors?", "format": "y/n"},
     "Q49": {"question": "Do you use some of the same teaching materials as other instructors of the same course in your department?", "format": "y/n"},
     "Q50": {"question": "Do you talk with colleagues about how to teach this course?", "format": "y/n"},
     "Q51": {"question": "Relevant to this course, did you read articles or attend workshops to improve your teaching?", "format": "y/n"},
     "Q52": {"question": "Have you observed another instructor's class to get ideas?", "format": "y/n"},
     "Q53": {"question": "Do you have any comments or want to mention other teaching practices that you use in this course?",
-    "format": "text"}
+            "format": "text"}
 }
 
 # Section Definitions
@@ -407,40 +415,41 @@ def create_input_widget(question_id, question_info, current_value=None):
     """Create the appropriate input widget based on question format"""
     format_type = question_info["format"]
     
-    # Handle TA-dependent questions (Q46 and Q47)
-    if question_id in ["Q46", "Q47"]:
-        # Check if Q45 is No
-        has_no_tas = False
-        if 'all_answers' in st.session_state:
-            has_no_tas = st.session_state.all_answers.get("Q45") == "No"
-        
-        if has_no_tas:
-            # Return disabled radio group with "not applicable" selected
-            return st.radio(
-                question_info["question"],
-                options=["yes", "no", "not applicable"],
-                index=2,  # Set to "not applicable"
-                key=f"input_{question_id}",
-                disabled=True,
-                horizontal=True
-            )
+    # Check Q45's status first for Q46 and Q47
+    has_no_tas = False
+    if 'all_answers' in st.session_state:
+        has_no_tas = st.session_state.all_answers.get("Q45") == "No"
+    elif current_value == "No" and question_id == "Q45":
+        has_no_tas = True
+
+    # Special handling for Q46 and Q47
+    if question_id in ["Q46", "Q47"] and has_no_tas:
+        options = ["not applicable", "no", "yes"]
+        st.session_state.all_answers[question_id] = "not applicable"  # Force the state
+        return st.radio(
+            question_info["question"],
+            options=options,
+            index=0,  # Set to "not applicable"
+            key=f"input_{question_id}",
+            disabled=True,
+            horizontal=True
+        )
     
     # For Q45, we need to update dependent questions when it changes
     if question_id == "Q45":
         response = st.radio(
             question_info["question"],
-            options=["Yes", "No"],
-            index=0 if current_value == "Yes" else 1 if current_value == "No" else None,
+            options=["No", "Yes"],
+            index=0 if current_value == "No" else 1 if current_value == "Yes" else None,
             horizontal=True,
             key=f"input_{question_id}"
         )
         
-        # If Q45 is set to No, immediately update Q46 and Q47
+        # If Q45 is No, immediately update Q46 and Q47
         if response == "No" and 'all_answers' in st.session_state:
             st.session_state.all_answers["Q46"] = "not applicable"
             st.session_state.all_answers["Q47"] = "not applicable"
-            # Force a rerun to update the UI
-            st.rerun()
+            st.experimental_rerun()  # Force a stronger rerun
         
         return response
 
@@ -448,17 +457,20 @@ def create_input_widget(question_id, question_info, current_value=None):
     if format_type == "y/n":
         return st.radio(
             question_info["question"],
-            options=["Yes", "No"],
-            index=0 if current_value == "Yes" else 1 if current_value == "No" else None,
+            options=["No", "Yes"],  # Changed order
+            index=0 if current_value == "No" else 1 if current_value == "Yes" else None,
             horizontal=True,
             key=f"input_{question_id}"
         )
     elif format_type.startswith("choice:"):
         options = format_type.split(":")[1].strip().split("/")
         
-        # For Q46 and Q47, make sure to use the correct index when "not applicable"
-        if question_id in ["Q46", "Q47"] and current_value == "not applicable":
-            index = len(options) - 1  # Last option should be "not applicable"
+        if current_value is None:
+            index = None
+        elif question_id in ["Q46", "Q47"]:
+            index = options.index(current_value) if current_value in options else None
+            if current_value == "not applicable":
+                index = 0
         else:
             index = options.index(current_value) if current_value in options else None
             
