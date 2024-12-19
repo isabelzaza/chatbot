@@ -371,10 +371,27 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
             
             if response.status_code == 200:
                 response_data = response.json()
-                # The actual response is in the content field of the last message
-                if response_data.get("data", {}).get("messages", []):
-                    last_message = response_data["data"]["messages"][-1]
-                    return last_message.get("content", "")
+                
+                # Add logging to understand response structure
+                st.write("Debug - Response structure:", response_data)
+                
+                # Try to get the response from different possible structures
+                if isinstance(response_data, dict):
+                    if "data" in response_data:
+                        if isinstance(response_data["data"], dict) and "messages" in response_data["data"]:
+                            # If response is in messages array
+                            messages = response_data["data"]["messages"]
+                            if messages and len(messages) > 0:
+                                return messages[-1].get("content", "")
+                        elif isinstance(response_data["data"], str):
+                            # If response is direct string in data
+                            return response_data["data"]
+                    # Fallback - try to find any text content
+                    content = response_data.get("content", response_data.get("text", response_data.get("output", "")))
+                    if content:
+                        return content
+                
+                st.error("Could not find response content in API response")
                 return ""
             else:
                 st.error(f"Request failed with status code {response.status_code}")
