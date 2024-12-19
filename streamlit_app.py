@@ -54,8 +54,7 @@ INVENTORY_QUESTIONS = {
     "Q44": {"question": "Do you try new teaching methods or materials and measure how well they work?", "format": "choice: often/sometimes/rarely/never"},
     "Q45": {"question": "Do you have graduate TAs or undergraduate LAs for this course?", "format": "y/n"},
     "Q46": {"question": "Do you provide TAs/LAs with some training on teaching methods?", "format": "choice: yes/no/not applicable"},
-    "Q47": {"question": "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing?", "format": "choice: yes/no/not applicable"},
-    "Q48": {"question": "Do you use teaching materials from other instructors?", "format": "y/n"},
+    "Q47": {"question": "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing?", "format": "choice: yes/no/not applicable"},   "Q48": {"question": "Do you use teaching materials from other instructors?", "format": "y/n"},
     "Q49": {"question": "Do you use some of the same teaching materials as other instructors of the same course in your department?", "format": "y/n"},
     "Q50": {"question": "Do you talk with colleagues about how to teach this course?", "format": "y/n"},
     "Q51": {"question": "Relevant to this course, did you read articles or attend workshops to improve your teaching?", "format": "y/n"},
@@ -404,16 +403,24 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         return None
 
 # UI Components
-def create_input_widget(question_id, question_info, current_value=None):
+ef create_input_widget(question_id, question_info, current_value=None):
     """Create the appropriate input widget based on question format"""
     format_type = question_info["format"]
     
-    # Handle TA-dependent questions
+    # Handle TA-dependent questions (Q46 and Q47)
     if question_id in ["Q46", "Q47"]:
-        # Check if Q45 (having TAs) is answered "No"
-        if 'all_answers' in st.session_state and st.session_state.all_answers.get("Q45") == "No":
+        # Check if Q45 (having TAs) is "No" either in session state or current value
+        has_no_tas = False
+        if 'all_answers' in st.session_state:
+            has_no_tas = st.session_state.all_answers.get("Q45") == "No"
+        
+        if has_no_tas:
+            # If there are no TAs, disable the widget and return "not applicable"
+            st.text(question_info["question"])
+            st.text("Not applicable (no TAs/LAs for this course)")
             return "not applicable"
-    
+            
+    # Regular widget creation based on format
     if format_type == "y/n":
         return st.radio(
             question_info["question"],
@@ -424,38 +431,11 @@ def create_input_widget(question_id, question_info, current_value=None):
         )
     elif format_type.startswith("choice:"):
         options = format_type.split(":")[1].strip().split("/")
-        # For Q46 and Q47, disable if Q45 is "No"
-        if question_id in ["Q46", "Q47"] and 'all_answers' in st.session_state:
-            if st.session_state.all_answers.get("Q45") == "No":
-                return "not applicable"
         return st.radio(
             question_info["question"],
             options=options,
             index=options.index(current_value) if current_value in options else None,
             horizontal=True,
-            key=f"input_{question_id}"
-        )
-    elif format_type == "percentage (0 to 100)":
-        return st.number_input(
-            question_info["question"],
-            min_value=0,
-            max_value=100,
-            value=int(current_value) if current_value is not None else None,
-            placeholder="Enter percentage (0-100)",
-            key=f"input_{question_id}"
-        )
-    elif format_type == "number (minutes)" or format_type == "number":
-        return st.number_input(
-            question_info["question"],
-            min_value=0,
-            value=int(current_value) if current_value is not None else None,
-            placeholder="Enter number",
-            key=f"input_{question_id}"
-        )
-    else:  # text
-        return st.text_input(
-            question_info["question"],
-            value=str(current_value) if current_value is not None else "",
             key=f"input_{question_id}"
         )
 
@@ -558,7 +538,9 @@ def process_sections(analyzed_answers):
             if suggestions:
                 st.markdown("### Notes for future syllabus development, based on information you provided but was not in your syllabus")
                 st.markdown(suggestions)
-                st.info("You can copy these notes for future use when developing your syllabus.")
+                st.info("You can copy these notes for future use when developing your syllabus. You may close the app when you have copied this information.")
+        elif suggestions_wanted == "No":
+            st.success("Thank you for participating! You may now close the app.")
         
         return
     
