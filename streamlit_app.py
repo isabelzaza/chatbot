@@ -334,12 +334,12 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         "Authorization": f"Bearer {API_KEY}"
     }
 
- # Prepare document content
+    # Prepare document content
     documents_text = f"=== DOCUMENT 1 (Filename: {filename1}) ===\n" + file_content1
     if file_content2 and filename2:
         documents_text += f"\n\n=== DOCUMENT 2 (Filename: {filename2}) ===\n" + file_content2
 
- # Use the existing INVENTORY_PROMPT template
+    # Use the existing INVENTORY_PROMPT template
     prompt = INVENTORY_PROMPT.format(documents=documents_text)
 
     messages = [
@@ -371,7 +371,11 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
             
             if response.status_code == 200:
                 response_data = response.json()
-                return response_data.get("data", "")
+                # The actual response is in the content field of the last message
+                if response_data.get("data", {}).get("messages", []):
+                    last_message = response_data["data"]["messages"][-1]
+                    return last_message.get("content", "")
+                return ""
             else:
                 st.error(f"Request failed with status code {response.status_code}")
                 st.error(response.text)
