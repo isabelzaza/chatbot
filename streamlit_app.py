@@ -60,7 +60,7 @@ INVENTORY_QUESTIONS = {
     "Q50": {"question": "Do you talk with colleagues about how to teach this course?", "format": "y/n"},
     "Q51": {"question": "Relevant to this course, did you read articles or attend workshops to improve your teaching?", "format": "y/n"},
     "Q52": {"question": "Have you observed another instructor's class to get ideas?", "format": "y/n"},
-    "Q53" = {"question": "Do you have any comments or want to mention other teaching practices that you use in this course?",
+    "Q53": {"question": "Do you have any comments or want to mention other teaching practices that you use in this course?",
     "format": "text"}
 }
 
