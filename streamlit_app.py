@@ -438,6 +438,27 @@ def create_input_widget(question_id, question_info, current_value=None):
             horizontal=True,
             key=f"input_{question_id}"
         )
+    elif format_type == "percentage (0 to 100)":
+        return st.number_input(
+            question_info["question"],
+            min_value=0,
+            max_value=100,
+            value=int(current_value) if current_value is not None else None,
+            key=f"input_{question_id}"
+        )
+    elif format_type == "number (minutes)" or format_type == "number":
+        return st.number_input(
+            question_info["question"],
+            min_value=0,
+            value=int(current_value) if current_value is not None else None,
+            key=f"input_{question_id}"
+        )
+    else:  # text format
+        return st.text_input(
+            question_info["question"],
+            value=str(current_value) if current_value is not None else "",
+            key=f"input_{question_id}"
+        )
 
 def display_section(section_name, question_ids, current_answers):
     """Display a section of questions with appropriate input widgets"""
