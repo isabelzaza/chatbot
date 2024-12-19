@@ -59,7 +59,9 @@ INVENTORY_QUESTIONS = {
     "Q49": {"question": "Do you use some of the same teaching materials as other instructors of the same course in your department?", "format": "y/n"},
     "Q50": {"question": "Do you talk with colleagues about how to teach this course?", "format": "y/n"},
     "Q51": {"question": "Relevant to this course, did you read articles or attend workshops to improve your teaching?", "format": "y/n"},
-    "Q52": {"question": "Have you observed another instructor's class to get ideas?", "format": "y/n"}
+    "Q52": {"question": "Have you observed another instructor's class to get ideas?", "format": "y/n"},
+    "Q53" = {"question": "Do you have any comments or want to mention other teaching practices that you use in this course?",
+    "format": "text"
 }
 
 # Section Definitions
@@ -236,7 +238,7 @@ def save_to_google_sheets(answers):
         
         # Create row of answers in correct order
         row = []
-        for i in range(1, 53):  # Questions 1-52
+        for i in range(1, 54):  # Updated to include Q53
             q_id = f"Q{i}"
             row.append(answers.get(q_id, ""))
             
@@ -472,11 +474,9 @@ def display_section(section_name, question_ids, current_answers):
             
             # Evidence expander
             with cols[2]:
-                # Ensure evidence state exists
                 if 'evidence' not in st.session_state:
                     st.session_state.evidence = {}
                 
-                # Create expander regardless of evidence existence
                 with st.expander("Why I selected this?"):
                     if q_id in st.session_state.evidence and st.session_state.evidence[q_id]:
                         st.markdown("*Based on this text from your document:*")
@@ -487,6 +487,7 @@ def display_section(section_name, question_ids, current_answers):
                         st.write("No automated analysis available for this question.")
     
     return section_answers, all_answered
+
 
 def process_sections(analyzed_answers):
     """Process each section of questions sequentially"""
@@ -505,13 +506,19 @@ def process_sections(analyzed_answers):
         st.title("Thank you for completing the inventory!")
         st.success("Your responses have been successfully uploaded to our database.")
         
-        st.markdown("""
-        ### What's next?
-        Once we have collected enough data, we will share aggregate statistics with all faculty. 
-        We also plan to have a way for you to compare the results you entered to the distribution.
+        # Optional comments section
+        st.markdown("---")
+        comments = st.text_area(
+            "Do you have any comments or want to mention other teaching practices that you use in this course?",
+            height=150,
+            key="optional_comments"
+        )
         
-        In the mean time, if you have any questions or concerns about this inventory, contact Isabel.gauthier@vanderbilt.edu.
-        """)
+        # Update answers with comments if provided
+        if comments:
+            st.session_state.all_answers["Q53"] = comments
+            # Update Google Sheets with the new comment
+            save_to_google_sheets(st.session_state.all_answers)
         
         st.markdown("---")
         
@@ -577,6 +584,7 @@ def process_sections(analyzed_answers):
                         st.error("Could not save to Google Sheets")
                 else:
                     st.warning("Please click Complete to finish and save your responses")
+
 
 def process_answer_text(question_id, answer_text):
     """Process answer text based on question format"""
@@ -893,7 +901,11 @@ def main():
         This is an inventory of teaching practices as they apply for a specific course in a 
         specific semester. This information is collected only to help us better understand how we teach 
         in our larger courses (it will not be used for any evaluation). The Full inventory has several
-        questions but I want to help you answer them as fast as possible.  
+        questions but I want to help you answer them as fast as possible.
+        The inventory lists several evidence-based practices that are unlikely to all be used in the same
+        course. Please answer conservatively, as we are looking for an accurate picture of what practices
+        are really used in each of our classes.
+
         If you have a syllabus for the course, or any other document relevant to your teaching practices 
         in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions manually. 
         At the end, I will provide you with suggestions for information to add to your syllabus.
