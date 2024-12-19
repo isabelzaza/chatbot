@@ -31,11 +31,11 @@ INVENTORY_QUESTIONS = {
     "Q21": {"question": "In a typical class, what is the proportion of time for which students work in small groups?", "format": "percentage (0 to 100)"},
     "Q22": {"question": "In a typical class, what is the proportion of time for which you lecture?", "format": "percentage (0 to 100)"},
     "Q23": {"question": "What is the longest duration (in mins) you lecture before breaking into an entirely different activity (not just stopping to ask a question or invite questions)?", "format": "number (minutes)"},
-    "Q24": {"question": "How often do you use demonstrations, simulations, or videos?", "format": "choice: every class/every week/once in a while/rarely"},
+    "Q24": {"question": "How often do you use demonstrations, simulations, or videos?", "format": "choice: every class/every week/once in a while/rarely/never"},
     "Q25": {"question": "If you show a video, do you provide students with detailed instructions of what to look for in the video, and follow-up with a discussion?", "format": "y/n"},
-    "Q26": {"question": "How often do you talk about why the material might be useful or interesting from a student's point of view?", "format": "choice: every class/every week/once in a while/rarely"},
-    "Q27": {"question": "Do you use a response system (e.g., Top hat) for ungraded activities?", "format": "choice: every class/every week/once in a while/rarely"},
-    "Q28": {"question": "Do you use a response system (e.g., Top hat) for graded activities?", "format": "choice: every class/every week/once in a while/rarely"},
+    "Q26": {"question": "How often do you talk about why the material might be useful or interesting from a student's point of view?", "format": "choice: every class/every week/once in a while/rarely/never"},
+    "Q27": {"question": "Do you use a response system (e.g., Top hat) for ungraded activities?", "format": "choice: every class/every week/once in a while/rarely/never"},
+    "Q28": {"question": "Do you use a response system (e.g., Top hat) for graded activities?", "format": "choice: every class/every week/once in a while/rarely/never"},
     "Q29": {"question": "Do you give homework or practice problems that do not count towards grade?", "format": "y/n"},
     "Q30": {"question": "Do you give homework or problems that count towards grade?", "format": "y/n"},
     "Q31": {"question": "Do you assign a project or paper where students have some choice about the topic?", "format": "y/n"},
@@ -51,10 +51,10 @@ INVENTORY_QUESTIONS = {
     "Q41": {"question": "Do you use a pre-and-post test to measure how much students learn in the course?", "format": "y/n"},
     "Q42": {"question": "Do you ask students about their interest or feelings about the subject before and after the course?", "format": "y/n"},
     "Q43": {"question": "Do you give students some control over their learning, like choosing topics or how they will be graded?", "format": "y/n"},
-    "Q44": {"question": "Do you try new teaching methods or materials and measure how well they work?", "format": "choice: often/sometimes/rarely"},
+    "Q44": {"question": "Do you try new teaching methods or materials and measure how well they work?", "format": "choice: often/sometimes/rarely/never"},
     "Q45": {"question": "Do you have graduate TAs or undergraduate LAs for this course?", "format": "y/n"},
-    "Q46": {"question": "Do you provide TAs/LAs with some training on teaching methods?", "format": "y/n"},
-    "Q47": {"question": "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing?", "format": "y/n"},
+    "Q46": {"question": "Do you provide TAs/LAs with some training on teaching methods?", "format": "choice: yes/no/not applicable"},
+    "Q47": {"question": "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing?", "format": "choice: yes/no/not applicable"},
     "Q48": {"question": "Do you use teaching materials from other instructors?", "format": "y/n"},
     "Q49": {"question": "Do you use some of the same teaching materials as other instructors of the same course in your department?", "format": "y/n"},
     "Q50": {"question": "Do you talk with colleagues about how to teach this course?", "format": "y/n"},
@@ -383,6 +383,12 @@ def create_input_widget(question_id, question_info, current_value=None):
     """Create the appropriate input widget based on question format"""
     format_type = question_info["format"]
     
+    # Handle TA-dependent questions
+    if question_id in ["Q46", "Q47"]:
+        # Check if Q45 (having TAs) is answered "No"
+        if 'all_answers' in st.session_state and st.session_state.all_answers.get("Q45") == "No":
+            return "not applicable"
+    
     if format_type == "y/n":
         return st.radio(
             question_info["question"],
@@ -393,6 +399,10 @@ def create_input_widget(question_id, question_info, current_value=None):
         )
     elif format_type.startswith("choice:"):
         options = format_type.split(":")[1].strip().split("/")
+        # For Q46 and Q47, disable if Q45 is "No"
+        if question_id in ["Q46", "Q47"] and 'all_answers' in st.session_state:
+            if st.session_state.all_answers.get("Q45") == "No":
+                return "not applicable"
         return st.radio(
             question_info["question"],
             options=options,
@@ -577,10 +587,17 @@ def process_answer_text(question_id, answer_text):
     answer_text = answer_text.lower()
     
     try:
+        # Handle TA-dependent questions
+        if question_id in ["Q46", "Q47"] and 'all_answers' in st.session_state:
+            if st.session_state.all_answers.get("Q45") == "No":
+                return "not applicable"
+                
         if q_format == "y/n":
             # Extended yes/no detection
-            yes_indicators = ['yes', 'does', 'do', 'provides', 'has', 'used', 'given', 'shown', 'true', 'correct']
-            no_indicators = ['no', 'does not', "doesn't", 'do not', "don't", 'not used', 'not given', 'false']
+            yes_indicators = ['yes', 'does', 'do', 'provides', 'has', 'used', 'given', 'shown', 
+                            'true', 'correct', 'will', 'available', 'included', 'required']
+            no_indicators = ['no', 'does not', "doesn't", 'do not', "don't", 'not used', 'not given', 
+                           'false', 'unavailable', 'excluded', 'none']
             
             if any(indicator in answer_text for indicator in yes_indicators):
                 return "Yes"
@@ -589,6 +606,41 @@ def process_answer_text(question_id, answer_text):
                 
         elif q_format.startswith("choice:"):
             options = q_format.split(":")[1].strip().split("/")
+            
+            # Special handling for frequency-based questions
+            if question_id in ["Q24", "Q26", "Q27", "Q28"]:
+                if "never" in answer_text or "don't" in answer_text or "not used" in answer_text:
+                    return "never"
+                elif "every class" in answer_text or "each class" in answer_text:
+                    return "every class"
+                elif "week" in answer_text:
+                    return "every week"
+                elif "rarely" in answer_text or "seldom" in answer_text:
+                    return "rarely"
+                elif "sometimes" in answer_text or "occasionally" in answer_text:
+                    return "once in a while"
+            
+            # Handle Q44 (trying new methods)
+            elif question_id == "Q44":
+                if "never" in answer_text or "don't" in answer_text:
+                    return "never"
+                elif "often" in answer_text or "frequently" in answer_text:
+                    return "often"
+                elif "rarely" in answer_text or "seldom" in answer_text:
+                    return "rarely"
+                elif "sometimes" in answer_text or "occasionally" in answer_text:
+                    return "sometimes"
+            
+            # Handle TA questions (Q46, Q47)
+            elif question_id in ["Q46", "Q47"]:
+                if "not applicable" in answer_text or "n/a" in answer_text:
+                    return "not applicable"
+                elif any(yes_word in answer_text for yes_word in ['yes', 'do', 'does', 'provided']):
+                    return "yes"
+                elif any(no_word in answer_text for no_word in ['no', 'don\'t', 'does not']):
+                    return "no"
+            
+            # Default option matching
             for option in options:
                 if option.lower() in answer_text:
                     return option
@@ -598,9 +650,9 @@ def process_answer_text(question_id, answer_text):
             numbers = re.findall(r'\d+', answer_text)
             if numbers:
                 num = int(numbers[0])
-                if q_format == "percentage (0 to 100)" and num <= 100:
-                    return num
-                elif q_format == "number (minutes)" or q_format == "number":
+                if q_format == "percentage (0 to 100)":
+                    return min(100, max(0, num))  # Clamp between 0 and 100
+                else:
                     return num
                     
         else:  # text format
