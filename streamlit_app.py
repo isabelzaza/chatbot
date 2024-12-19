@@ -411,35 +411,35 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         return None
 
 # UI Components
-def update_dependent_questions():
-    if st.session_state.input_Q45 == "No":
-        st.session_state.all_answers["Q46"] = "not applicable"
-        st.session_state.all_answers["Q47"] = "not applicable"
-
 def create_input_widget(question_id, question_info, current_value=None):
     format_type = question_info["format"]
     
-    has_no_tas = st.session_state.all_answers.get("Q45") == "No" if 'all_answers' in st.session_state else (current_value == "No" and question_id == "Q45")
+    has_no_tas = st.session_state.all_answers.get("Q45") == "No"
 
-    if question_id in ["Q46", "Q47"] and has_no_tas:
-        options = ["not applicable", "no", "yes"]
-        return st.radio(
-            question_info["question"],
-            options=options,
-            index=0,
-            key=f"input_{question_id}",
-            disabled=True,
-            horizontal=True
-        )
-    
     if question_id == "Q45":
-        return st.radio(
+        response = st.radio(
             question_info["question"],
             options=["No", "Yes"],
             index=0 if current_value == "No" else 1 if current_value == "Yes" else None,
             horizontal=True,
-            key="input_Q45",
-            on_change=update_dependent_questions
+            key=f"input_{question_id}"
+        )
+        if response == "No":
+            st.session_state.all_answers["Q46"] = "not applicable"
+            st.session_state.all_answers["Q47"] = "not applicable"
+        return response
+
+    if question_id in ["Q46", "Q47"]:
+        options = ["not applicable", "no", "yes"]
+        value = "not applicable" if has_no_tas else st.session_state.all_answers.get(question_id, current_value)
+        index = options.index(value) if value in options else 0
+        return st.radio(
+            question_info["question"],
+            options=options,
+            index=index,
+            key=f"input_{question_id}",
+            disabled=has_no_tas,
+            horizontal=True
         )
 
     if format_type == "y/n":
@@ -481,7 +481,7 @@ def create_input_widget(question_id, question_info, current_value=None):
             value=str(current_value) if current_value is not None else "",
             key=f"input_{question_id}"
         )
-        
+
 def display_section(section_name, question_ids, current_answers):
     """Display a section of questions with appropriate input widgets"""
     st.subheader(section_name)
