@@ -403,7 +403,7 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         return None
 
 # UI Components
-ef create_input_widget(question_id, question_info, current_value=None):
+def create_input_widget(question_id, question_info, current_value=None):
     """Create the appropriate input widget based on question format"""
     format_type = question_info["format"]
     
