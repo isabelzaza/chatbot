@@ -444,13 +444,12 @@ def create_input_widget(question_id, question_info, current_value=None):
             horizontal=True,
             key=f"input_{question_id}"
         )
-        
-        # If Q45 is No, immediately update Q46 and Q47
+    
+        # Update Q46 and Q47 states without forcing a rerun
         if response == "No" and 'all_answers' in st.session_state:
             st.session_state.all_answers["Q46"] = "not applicable"
             st.session_state.all_answers["Q47"] = "not applicable"
-            st.experimental_rerun()  # Force a stronger rerun
-        
+    
         return response
 
     # Regular widget creation based on format
