@@ -685,6 +685,14 @@ def process_sections(analyzed_answers):
     if st.session_state.completed:
         st.title("Thank you for completing the inventory!")
 
+        st.markdown("### Additional Comments")
+        # Ensure Q53 is captured before saving
+        if "Q53" not in st.session_state.all_answers or st.session_state.all_answers["Q53"] == "":
+            st.session_state.all_answers["Q53"] = display_q53(
+                current_value=st.session_state.all_answers.get("Q53")
+            )
+        
+        # Save responses only after Q53 is completed
         if not st.session_state.saved_to_sheets:
             if save_to_google_sheets(st.session_state.all_answers):
                 st.session_state.saved_to_sheets = True
@@ -692,6 +700,7 @@ def process_sections(analyzed_answers):
             else:
                 st.error("Failed to save responses. Please try again.")
 
+        # Provide suggestions or complete the process
         st.markdown("### Would you like additional suggestions?")
         suggestions_wanted = st.radio(
             "Suggestions for your syllabus?",
@@ -714,13 +723,7 @@ def process_sections(analyzed_answers):
     section_name, question_ids = sections_list[st.session_state.current_section]
     section_answers, all_answered = display_section(section_name, question_ids, st.session_state.all_answers)
 
-    # Handle Q53 (comments) in the final section
-    if st.session_state.current_section == len(sections_list) - 1:  # Final section
-        st.session_state.all_answers["Q53"] = display_q53(
-            current_value=st.session_state.all_answers.get("Q53")
-        )
-
-    # Navigation buttons
+    # Handle navigation between sections
     nav_cols = st.columns([1, 2, 1])
     with nav_cols[0]:
         if st.session_state.current_section > 0:
@@ -741,11 +744,22 @@ def process_sections(analyzed_answers):
                     st.rerun()
             else:
                 st.warning("Please answer all questions in this section.")
-        else:
+        else:  # Final section
             st.session_state.all_answers.update(section_answers)
-            if st.button("Complete"):
-                st.session_state.completed = True
-                st.rerun()
+            # Include Q53 (comments) before completing
+            st.title("Final Comments")
+            st.session_state.all_answers["Q53"] = display_q53(
+                current_value=st.session_state.all_answers.get("Q53")
+            )
+
+            if st.button("Complete and Save"):
+                if save_to_google_sheets(st.session_state.all_answers):
+                    st.session_state.saved_to_sheets = True
+                    st.success("Your responses have been successfully uploaded to our database.")
+                    st.session_state.completed = True
+                    st.rerun()
+                else:
+                    st.error("Failed to save responses. Please try again.")
 
 
 def process_answer_text(question_id, answer_text):
