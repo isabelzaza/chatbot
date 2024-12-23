@@ -577,14 +577,26 @@ def process_sections(analyzed_answers):
     if 'saved_to_sheets' not in st.session_state:
         st.session_state.saved_to_sheets = False
     
-    # If already completed, show completion page
+     # If already completed, show completion page
     if st.session_state.completed:
         st.title("Thank you for completing the inventory!")
-        st.success("Your responses have been successfully uploaded to our database.")
         
-        # Optional comments section
-        st.title("Thank you for completing the inventory!")
-        st.success("Your responses have been successfully uploaded to our database.")
+        # Comments section
+        comments = st.text_area(
+            "Do you have any comments or want to mention other teaching practices that you use in this course?",
+            value=st.session_state.all_answers.get("Q53", ""),
+            height=150,
+            key="optional_comments"
+        )
+        
+        # Handle comments and saving
+        if comments != st.session_state.all_answers.get("Q53", ""):
+            st.session_state.all_answers["Q53"] = comments
+            if save_to_google_sheets(st.session_state.all_answers):
+                st.session_state.saved_to_sheets = True
+                st.success("Your responses have been successfully uploaded to our database.")
+        elif st.session_state.saved_to_sheets:
+            st.success("Your responses have been successfully uploaded to our database.")
         
         st.markdown("---")
         
@@ -645,16 +657,10 @@ def process_sections(analyzed_answers):
                 
                 # Complete button and subsequent actions
                 if st.button("Complete"):
-                    # Only save if we haven't saved before
-                    if save_to_google_sheets(st.session_state.all_answers):
-                        st.session_state.completed = True
-                        st.session_state.saved_to_sheets = True
-                        st.rerun()
-                    else:
-                         st.error("Could not save to Google Sheets")
-            else:
-                st.warning("Please click Complete to finish and save your responses")
-
+                    st.session_state.completed = True
+                    st.rerun()
+                else:
+                    st.warning("Please click Complete to finish")
 
 def process_answer_text(question_id, answer_text):
     """Process answer text based on question format"""
