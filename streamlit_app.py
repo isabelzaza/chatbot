@@ -567,16 +567,6 @@ def display_section(section_name, question_ids, current_answers):
     return section_answers, all_answered
 
 
-def display_q53(current_value=None):
-    """Display input widget for Q53 (comments)"""
-    comments = st.text_area(
-        INVENTORY_QUESTIONS["Q53"]["question"],
-        value=current_value if current_value else "",
-        height=150,
-        key="input_Q53"
-    )
-    return comments
-
 def create_input_widget(question_id, question_info, current_value=None):
     """Create input widgets based on question format"""
     format_type = question_info["format"]
@@ -685,26 +675,24 @@ def process_sections(analyzed_answers):
         st.session_state.final_comments_submitted = False
 
     # If already completed, show completion page
-    if st.session_state.completed:
+    if st.session_state.completed and st.session_state.saved_to_sheets:
         st.title("Thank you for completing the inventory!")
-        
-        # Only show suggestions after everything is saved
-        if st.session_state.saved_to_sheets:
-            st.markdown("### Would you like additional suggestions?")
-            suggestions_wanted = st.radio(
-                "Suggestions for your syllabus?",
-                options=["Yes", "No"],
-                index=0,
-                horizontal=True
-            )
 
-            if suggestions_wanted == "Yes":
-                suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
-                if suggestions:
-                    st.markdown("### Suggested Additions:")
-                    st.write(suggestions)
-            else:
-                st.success("Thank you for participating!")
+        st.markdown("### Would you like additional suggestions?")
+        suggestions_wanted = st.radio(
+            "Suggestions for your syllabus?",
+            options=["Yes", "No"],
+            index=0,
+            horizontal=True
+        )
+
+        if suggestions_wanted == "Yes":
+            suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
+            if suggestions:
+                st.markdown("### Suggested Additions:")
+                st.write(suggestions)
+        else:
+            st.success("Thank you for participating!")
         return
 
     # Process sections and display questions
@@ -736,24 +724,23 @@ def process_sections(analyzed_answers):
         else:  # Final section
             st.session_state.all_answers.update(section_answers)
             
-            # Show final comments section before saving
+            # Get final comments before saving
             st.title("Final Comments")
             comments = display_q53(current_value=st.session_state.all_answers.get("Q53"))
             
-            # Only show the complete button if comments are provided
-            if comments and comments.strip():  # Ensure comments aren't just whitespace
+            if comments is not None:  # Either actual comments or "No comments provided"
                 st.session_state.all_answers["Q53"] = comments
+                
                 if st.button("Complete and Save"):
                     if save_to_google_sheets(st.session_state.all_answers):
                         st.session_state.saved_to_sheets = True
-                        st.success("Your responses have been successfully saved.")
                         st.session_state.completed = True
+                        st.success("Your responses have been successfully saved.")
                         st.rerun()
                     else:
                         st.error("Failed to save responses. Please try again.")
             else:
-                st.info("Please provide your final comments before completing the inventory.")
-
+                st.info("Please provide your final comments or click 'No comments' before completing.")
 
 def process_answer_text(question_id, answer_text):
     """Process answer text based on question format"""
