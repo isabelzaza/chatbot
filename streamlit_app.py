@@ -81,7 +81,8 @@ SECTIONS = {
     "Section VI: Feedback and Testing": list(f"Q{i}" for i in range(34, 40)),
     "Section VII: Other": list(f"Q{i}" for i in range(40, 45)),
     "Section VIII: Teaching Assistants": list(f"Q{i}" for i in range(45, 48)),
-    "Section IX: Collaboration": list(f"Q{i}" for i in range(48, 54))
+    "Section IX: Collaboration": list(f"Q{i}" for i in range(48, 53)),
+    "Section X: Comments": ["Q53"]
 }
 # LLM Prompt Template
 INVENTORY_PROMPT = """
