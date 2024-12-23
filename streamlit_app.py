@@ -81,7 +81,7 @@ SECTIONS = {
     "Section VI: Feedback and Testing": list(f"Q{i}" for i in range(34, 40)),
     "Section VII: Other": list(f"Q{i}" for i in range(40, 45)),
     "Section VIII: Teaching Assistants": list(f"Q{i}" for i in range(45, 48)),
-    "Section IX: Collaboration": list(f"Q{i}" for i in range(48, 53))
+    "Section IX: Collaboration": list(f"Q{i}" for i in range(48, 54))
 }
 # LLM Prompt Template
 INVENTORY_PROMPT = """
@@ -562,18 +562,8 @@ def process_sections(analyzed_answers):
         st.success("Your responses have been successfully uploaded to our database.")
         
         # Optional comments section
-        st.markdown("---")
-        comments = st.text_area(
-            "Do you have any comments or want to mention other teaching practices that you use in this course?",
-            value=st.session_state.all_answers.get("Q53", ""),
-            height=150,
-            key="optional_comments"
-        )
-        
-        # Update answers with comments if provided
-          if comments != st.session_state.all_answers.get("Q53", ""):
-            st.session_state.all_answers["Q53"] = comments
-            save_to_google_sheets(st.session_state.all_answers)
+        st.title("Thank you for completing the inventory!")
+        st.success("Your responses have been successfully uploaded to our database.")
         
         st.markdown("---")
         
@@ -634,10 +624,15 @@ def process_sections(analyzed_answers):
                 
                 # Complete button and subsequent actions
                 if st.button("Complete"):
-                    st.session_state.completed = True
-                    st.rerun()
-                else:
-                    st.warning("Please click Complete to finish")
+                    # Only save if we haven't saved before
+                    if save_to_google_sheets(st.session_state.all_answers):
+                        st.session_state.completed = True
+                        st.session_state.saved_to_sheets = True
+                        st.rerun()
+                    else:
+                         st.error("Could not save to Google Sheets")
+            else:
+                st.warning("Please click Complete to finish and save your responses")
 
 
 def process_answer_text(question_id, answer_text):
