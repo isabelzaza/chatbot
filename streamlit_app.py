@@ -411,8 +411,29 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         return None
 
 # UI Components
+def display_q53(current_value=None):
+    """Create input widget for Q53 that matches other questions"""
+    # Text area for comments
+    comments = st.text_area(
+        INVENTORY_QUESTIONS["Q53"]["question"],
+        value=current_value if current_value else "",
+        key="input_Q53",
+        height=100  # Makes the text area a bit bigger
+    )
+    
+    # Add "No comments" button below the text area
+    if st.button("No comments", key="no_comments_btn"):
+        return "No comments provided"
+    
+    # If there are comments, they'll be returned
+    return comments
+
 def create_input_widget(question_id, question_info, current_value=None):
     format_type = question_info["format"]
+    
+    # Special handling for Q53
+    if question_id == "Q53":
+        return display_q53(current_value)
     
     has_no_tas = st.session_state.all_answers.get("Q45") == "No"
 
