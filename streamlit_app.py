@@ -681,42 +681,30 @@ def process_sections(analyzed_answers):
         st.session_state.completed = False
     if 'saved_to_sheets' not in st.session_state:
         st.session_state.saved_to_sheets = False
+    if 'final_comments_submitted' not in st.session_state:
+        st.session_state.final_comments_submitted = False
 
     # If already completed, show completion page
     if st.session_state.completed:
         st.title("Thank you for completing the inventory!")
-
-        st.markdown("### Additional Comments")
-        # Ensure Q53 is captured before saving
-        if "Q53" not in st.session_state.all_answers or st.session_state.all_answers["Q53"] == "":
-            st.session_state.all_answers["Q53"] = display_q53(
-                current_value=st.session_state.all_answers.get("Q53")
-            )
         
-        # Save responses only after Q53 is completed
-        if not st.session_state.saved_to_sheets:
-            if save_to_google_sheets(st.session_state.all_answers):
-                st.session_state.saved_to_sheets = True
-                st.success("Your responses have been successfully uploaded to our database.")
+        # Only show suggestions after everything is saved
+        if st.session_state.saved_to_sheets:
+            st.markdown("### Would you like additional suggestions?")
+            suggestions_wanted = st.radio(
+                "Suggestions for your syllabus?",
+                options=["Yes", "No"],
+                index=0,
+                horizontal=True
+            )
+
+            if suggestions_wanted == "Yes":
+                suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
+                if suggestions:
+                    st.markdown("### Suggested Additions:")
+                    st.write(suggestions)
             else:
-                st.error("Failed to save responses. Please try again.")
-
-        # Provide suggestions or complete the process
-        st.markdown("### Would you like additional suggestions?")
-        suggestions_wanted = st.radio(
-            "Suggestions for your syllabus?",
-            options=["Yes", "No"],
-            index=0,
-            horizontal=True
-        )
-
-        if suggestions_wanted == "Yes":
-            suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
-            if suggestions:
-                st.markdown("### Suggested Additions:")
-                st.write(suggestions)
-        else:
-            st.success("Thank you for participating!")
+                st.success("Thank you for participating!")
         return
 
     # Process sections and display questions
@@ -747,20 +735,24 @@ def process_sections(analyzed_answers):
                 st.warning("Please answer all questions in this section.")
         else:  # Final section
             st.session_state.all_answers.update(section_answers)
-            # Include Q53 (comments) before completing
+            
+            # Show final comments section before saving
             st.title("Final Comments")
-            st.session_state.all_answers["Q53"] = display_q53(
-                current_value=st.session_state.all_answers.get("Q53")
-            )
-
-            if st.button("Complete and Save"):
-                if save_to_google_sheets(st.session_state.all_answers):
-                    st.session_state.saved_to_sheets = True
-                    st.success("Your responses have been successfully uploaded to our database.")
-                    st.session_state.completed = True
-                    st.rerun()
-                else:
-                    st.error("Failed to save responses. Please try again.")
+            comments = display_q53(current_value=st.session_state.all_answers.get("Q53"))
+            
+            # Only show the complete button if comments are provided
+            if comments and comments.strip():  # Ensure comments aren't just whitespace
+                st.session_state.all_answers["Q53"] = comments
+                if st.button("Complete and Save"):
+                    if save_to_google_sheets(st.session_state.all_answers):
+                        st.session_state.saved_to_sheets = True
+                        st.success("Your responses have been successfully saved.")
+                        st.session_state.completed = True
+                        st.rerun()
+                    else:
+                        st.error("Failed to save responses. Please try again.")
+            else:
+                st.info("Please provide your final comments before completing the inventory.")
 
 
 def process_answer_text(question_id, answer_text):
@@ -968,11 +960,9 @@ def generate_syllabus_suggestions(answers):
     """Generate suggestions for syllabus improvements based on inventory answers"""
     
     # Questions to skip (not typically in syllabus or practice-based)
-    SKIP_QUESTIONS = set([f"Q{i}" for i in range(1, 5)] +  # Basic info
-                        [f"Q{i}" for i in range(20, 26)] +  # In-class practices
-                        ["Q34"] +  # Feedback practices
-                        [f"Q{i}" for i in range(45, 53)])  # TA and collaboration info
-    
+    SKIP_QUESTIONS = set([f"Q{i}" for i in range(20, 27)])  # In-class practices
+
+
     # Create prompt for LLM
     prompt = """Based on these teaching inventory answers, provide sample syllabus text that is clear, 
     direct, and student-friendly. For each section:
