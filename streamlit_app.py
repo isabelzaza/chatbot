@@ -565,17 +565,15 @@ def process_sections(analyzed_answers):
         st.markdown("---")
         comments = st.text_area(
             "Do you have any comments or want to mention other teaching practices that you use in this course?",
+            value=st.session_state.all_answers.get("Q53", ""),
             height=150,
             key="optional_comments"
         )
         
         # Update answers with comments if provided
-        if comments:
+          if comments != st.session_state.all_answers.get("Q53", ""):
             st.session_state.all_answers["Q53"] = comments
-            # Only save if we haven't saved before
-            if not st.session_state.saved_to_sheets:
-                save_to_google_sheets(st.session_state.all_answers)
-                st.session_state.saved_to_sheets = True
+            save_to_google_sheets(st.session_state.all_answers)
         
         st.markdown("---")
         
@@ -636,15 +634,10 @@ def process_sections(analyzed_answers):
                 
                 # Complete button and subsequent actions
                 if st.button("Complete"):
-                    # Only save if we haven't saved before
-                    if save_to_google_sheets(st.session_state.all_answers):
-                        st.session_state.completed = True
-                        st.session_state.saved_to_sheets = True
-                        st.rerun()
-                    else:
-                        st.error("Could not save to Google Sheets")
+                    st.session_state.completed = True
+                    st.rerun()
                 else:
-                    st.warning("Please click Complete to finish and save your responses")
+                    st.warning("Please click Complete to finish")
 
 
 def process_answer_text(question_id, answer_text):
