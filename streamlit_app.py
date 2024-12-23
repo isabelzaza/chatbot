@@ -95,7 +95,7 @@ For each answer you find, provide:
 3. Answer - ONLY if explicitly found in documents
 4. Evidence: Quote "exactly as appears" (From Document 1/2)
 
-CORE QUESTIONS:
+Clues for some questions:
 
 Q1 (Instructor Name):
 - Look for lines with "Instructor:" or containing "Instructor"/"Professor" 
@@ -183,7 +183,7 @@ Look for:
 - "Teaching assistants" sections
 - Lists of TA names/emails
 - Mentions of "TA" or "LA"
-- If there is no such indication of information about teaching assistants/TAs or LAs, the answer to Q45 
+- If there is no mention of teaching assistants or TAs or LAs, the answer to Q45 
 should be "no"".
 
 Q46 and Q47: if the answer to Q45 is "no"", the answer to Q46 and Q47 should be "not applicable"
