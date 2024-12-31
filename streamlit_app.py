@@ -91,12 +91,12 @@ Consider ALL provided documents together.
 
 FORMAT GUIDELINES:
 For each answer you find, provide:
-1. Question number (Q1-Q53)
+1. Question number (Q1-Q52)
 2. Question text
 3. Answer - ONLY if explicitly found in documents
 4. Evidence: Quote "exactly as appears" (From Document 1/2)
 
-Clues for some questions:
+CORE QUESTIONS:
 
 Q1 (Instructor Name):
 - Look for lines with "Instructor:" or containing "Instructor"/"Professor" 
@@ -184,10 +184,6 @@ Look for:
 - "Teaching assistants" sections
 - Lists of TA names/emails
 - Mentions of "TA" or "LA"
-- If there is no mention of teaching assistants or TAs or LAs, the answer to Q45 
-should be "no"".
-
-Q46 and Q47: if the answer to Q45 is "no"", the answer to Q46 and Q47 should be "not applicable"
 
 IMPORTANT: Only provide answers with explicit evidence from the documents. Do not infer or guess.
 
@@ -416,29 +412,8 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         return None
 
 # UI Components
-def display_q53(current_value=None):
-    """Create input widget for Q53 that matches other questions"""
-    # Text area for comments
-    comments = st.text_area(
-        INVENTORY_QUESTIONS["Q53"]["question"],
-        value=current_value if current_value else "",
-        key="input_Q53",
-        height=100  # Makes the text area a bit bigger
-    )
-    
-    # Add "No comments" button below the text area
-    if st.button("No comments", key="no_comments_btn"):
-        return "No comments provided"
-    
-    # If there are comments, they'll be returned
-    return comments
-
 def create_input_widget(question_id, question_info, current_value=None):
     format_type = question_info["format"]
-    
-    # Special handling for Q53
-    if question_id == "Q53":
-        return display_q53(current_value)
     
     has_no_tas = st.session_state.all_answers.get("Q45") == "No"
 
@@ -567,180 +542,111 @@ def display_section(section_name, question_ids, current_answers):
     return section_answers, all_answered
 
 
-def create_input_widget(question_id, question_info, current_value=None):
-    """Create input widgets based on question format"""
-    format_type = question_info["format"]
-    
-    if question_id == "Q53":
-        return display_q53(current_value)
-
-    if format_type == "y/n":
-        return st.radio(
-            question_info["question"],
-            options=["No", "Yes"],
-            index=0 if current_value == "No" else 1 if current_value == "Yes" else None,
-            horizontal=True,
-            key=f"input_{question_id}"
-        )
-    elif format_type.startswith("choice:"):
-        options = format_type.split(":")[1].strip().split("/")
-        return st.radio(
-            question_info["question"],
-            options=options,
-            index=options.index(current_value) if current_value in options else None,
-            horizontal=True,
-            key=f"input_{question_id}"
-        )
-    elif format_type == "percentage (0 to 100)":
-        return st.number_input(
-            question_info["question"],
-            min_value=0,
-            max_value=100,
-            value=int(current_value) if current_value else None,
-            key=f"input_{question_id}"
-        )
-    elif format_type == "number (minutes)" or format_type == "number":
-        return st.number_input(
-            question_info["question"],
-            min_value=0,
-            value=int(current_value) if current_value else None,
-            key=f"input_{question_id}"
-        )
-    else:
-        return st.text_input(
-            question_info["question"],
-            value=str(current_value) if current_value else "",
-            key=f"input_{question_id}"
-        )
-
-def display_section(section_name, question_ids, current_answers):
-    """Display a section of questions with appropriate input widgets"""
-    st.subheader(section_name)
-    section_answers = {}
-    all_answered = True
-    
-    for q_id in question_ids:
-        question_info = INVENTORY_QUESTIONS[q_id]
-        current_value = current_answers.get(q_id)
-        answer = create_input_widget(q_id, question_info, current_value)
-        section_answers[q_id] = answer
-
-        if not answer or (isinstance(answer, str) and answer.strip() == ""):
-            all_answered = False
-
-    return section_answers, all_answered
-
-def save_to_google_sheets(answers):
-    """Save answers to Google Sheets"""
-    try:
-        credentials = {
-            "type": st.secrets["gcp_service_account"]["type"],
-            "project_id": st.secrets["gcp_service_account"]["project_id"],
-            "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
-            "private_key": st.secrets["gcp_service_account"]["private_key"],
-            "client_email": st.secrets["gcp_service_account"]["client_email"],
-            "client_id": st.secrets["gcp_service_account"]["client_id"],
-            "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
-            "token_uri": st.secrets["gcp_service_account"]["token_uri"],
-            "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
-            "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
-        }
-        
-        gc = gspread.service_account_from_dict(credentials)
-        sheet_url = st.secrets["google_sheets"]["sheet_url"]
-        spreadsheet = gc.open_by_url(sheet_url)
-        worksheet = spreadsheet.sheet1  # Use the first sheet
-        
-        # Prepare row for saving
-        row = [answers.get(f"Q{i}", "") for i in range(1, 54)]
-        worksheet.append_row(row)
-        return True
-
-    except Exception as e:
-        st.error(f"Error saving to Google Sheets: {str(e)}")
-        return False
-
 def process_sections(analyzed_answers):
-    """Process each section of the teaching inventory"""
+    """Process each section of questions sequentially"""
     # Initialize session state variables
     if 'current_section' not in st.session_state:
         st.session_state.current_section = 0
+    
     if 'all_answers' not in st.session_state:
         st.session_state.all_answers = analyzed_answers or {}
+        
     if 'completed' not in st.session_state:
         st.session_state.completed = False
+        
     if 'saved_to_sheets' not in st.session_state:
         st.session_state.saved_to_sheets = False
-    if 'final_comments_submitted' not in st.session_state:
-        st.session_state.final_comments_submitted = False
-
+    
     # If already completed, show completion page
-    if st.session_state.completed and st.session_state.saved_to_sheets:
+    if st.session_state.completed:
         st.title("Thank you for completing the inventory!")
-
-        st.markdown("### Would you like additional suggestions?")
+        st.success("Your responses have been successfully uploaded to our database.")
+        
+        # Optional comments section
+        # st.markdown("---")
+        # comments = st.text_area(
+        #     "Do you have any comments or want to mention other teaching practices that you use in this course?",
+        #     height=150,
+        #     key="optional_comments"
+        # )
+        
+        # Update answers with comments if provided
+        # if comments:
+        #     st.session_state.all_answers["Q53"] = comments
+        #     # Only save if we haven't saved before
+        #     if not st.session_state.saved_to_sheets:
+        #         save_to_google_sheets(st.session_state.all_answers)
+        #         st.session_state.saved_to_sheets = True
+        
+        st.markdown("---")
+        
         suggestions_wanted = st.radio(
-            "Suggestions for your syllabus?",
+            "Would you like ideas on what could be added to your next syllabus for this course?",
             options=["Yes", "No"],
-            index=0,
-            horizontal=True
+            index=None,
+            horizontal=True,
+            key="suggestions_radio"
         )
-
+        
         if suggestions_wanted == "Yes":
             suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
             if suggestions:
-                st.markdown("### Suggested Additions:")
-                st.write(suggestions)
-        else:
-            st.success("Thank you for participating!")
+                st.markdown("### Notes for future syllabus development, based on information you provided but was not in your syllabus")
+                st.markdown(suggestions)
+                st.info("You can copy these notes for future use when developing your syllabus.")
+        # elif suggestions_wanted == "No":
+        st.success("Thank you for participating! You may now close the app.")
+        
         return
-
-    # Process sections and display questions
-    sections_list = list(SECTIONS.items())
-    section_name, question_ids = sections_list[st.session_state.current_section]
-    section_answers, all_answered = display_section(section_name, question_ids, st.session_state.all_answers)
-
-    # Handle navigation between sections
-    nav_cols = st.columns([1, 2, 1])
-    with nav_cols[0]:
-        if st.session_state.current_section > 0:
-            if st.button("Previous Section"):
-                st.session_state.all_answers.update(section_answers)
-                st.session_state.current_section -= 1
-                st.rerun()
-
-    with nav_cols[1]:
-        st.write(f"Section {st.session_state.current_section + 1} of {len(sections_list)}")
-
-    with nav_cols[2]:
-        if st.session_state.current_section < len(sections_list) - 1:
-            if all_answered:
-                if st.button("Next Section"):
+    
+    # Regular section processing for incomplete form
+    main_container = st.container()
+    
+    with main_container:
+        sections_list = list(SECTIONS.items())
+        current_section = sections_list[st.session_state.current_section]
+        
+        section_name, question_ids = current_section
+        section_answers, all_answered = display_section(section_name, question_ids, st.session_state.all_answers)
+        
+        # Navigation buttons
+        nav_cols = st.columns(3)
+        
+        with nav_cols[0]:
+            if st.session_state.current_section > 0:
+                if st.button("Previous Section"):
                     st.session_state.all_answers.update(section_answers)
-                    st.session_state.current_section += 1
+                    st.session_state.current_section -= 1
                     st.rerun()
-            else:
-                st.warning("Please answer all questions in this section.")
-        else:  # Final section
-            st.session_state.all_answers.update(section_answers)
-            
-            # Get final comments before saving
-            st.title("Final Comments")
-            comments = display_q53(current_value=st.session_state.all_answers.get("Q53"))
-            
-            if comments is not None:  # Either actual comments or "No comments provided"
-                st.session_state.all_answers["Q53"] = comments
+        
+        with nav_cols[1]:
+            st.write(f"Section {st.session_state.current_section + 1} of {len(SECTIONS)}")
+        
+        with nav_cols[2]:
+            if st.session_state.current_section < len(SECTIONS) - 1:
+                if all_answered:
+                    if st.button("Next Section"):
+                        st.session_state.all_answers.update(section_answers)
+                        st.session_state.current_section += 1
+                        st.rerun()
+                else:
+                    st.warning("Please answer all questions")
+            elif all_answered:
+                # Update answers before showing complete button
+                st.session_state.all_answers.update(section_answers)
                 
-                if st.button("Complete and Save"):
+                # Complete button and subsequent actions
+                if st.button("Complete"):
+                    # Only save if we haven't saved before
                     if save_to_google_sheets(st.session_state.all_answers):
-                        st.session_state.saved_to_sheets = True
                         st.session_state.completed = True
-                        st.success("Your responses have been successfully saved.")
+                        st.session_state.saved_to_sheets = True
                         st.rerun()
                     else:
-                        st.error("Failed to save responses. Please try again.")
-            else:
-                st.info("Please provide your final comments or click 'No comments' before completing.")
+                        st.error("Could not save to Google Sheets")
+                else:
+                    st.warning("Please click Complete to finish and save your responses")
+
 
 def process_answer_text(question_id, answer_text):
     """Process answer text based on question format"""
@@ -947,9 +853,11 @@ def generate_syllabus_suggestions(answers):
     """Generate suggestions for syllabus improvements based on inventory answers"""
     
     # Questions to skip (not typically in syllabus or practice-based)
-    SKIP_QUESTIONS = set([f"Q{i}" for i in range(20, 27)])  # In-class practices
-
-
+    SKIP_QUESTIONS = set([f"Q{i}" for i in range(1, 5)] +  # Basic info
+                        [f"Q{i}" for i in range(20, 26)] +  # In-class practices
+                        ["Q34"] +  # Feedback practices
+                        [f"Q{i}" for i in range(45, 53)])  # TA and collaboration info
+    
     # Create prompt for LLM
     prompt = """Based on these teaching inventory answers, provide sample syllabus text that is clear, 
     direct, and student-friendly. For each section:
@@ -996,7 +904,7 @@ def generate_syllabus_suggestions(answers):
     For your response:
     1. Write in clear, simple language that students will easily understand
     2. Avoid academic jargon and complex terminology
-    3. Be clear what section of the syllabus the information should be added to
+    3. Focus on what will be done in the course
     4. Include notes about specific details the instructor should add
     5. Present the text exactly as it could appear in a syllabus
     6. Don't suggest anything about "Contact information" or "Student Support and Resources"
