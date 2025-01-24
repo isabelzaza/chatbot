@@ -15,7 +15,7 @@ INVENTORY_QUESTIONS = {
     "Q5": {"question": "Do you give students a list of the topics that will be covered in the course?", "format": "y/n"},
     "Q6": {"question": "Do you provide a list of general skills or abilities students should develop (like critical thinking)?", "format": "y/n"},
     "Q7": {"question": "Do you list specific skills or abilities students should learn from specific topics (e.g., from a given activity or lecture)?", "format": "y/n"},
-    "Q8": {"question": "Do you articulate a policy regarding permissible and impermissible use of AI tools/LLMs for this class, beyond saying all use of AI tools in assignments is banned?", "format": "y/n"},
+    "Q8": {"question": "Do you articulate a policy regarding permissible use of AI tools/LLMs for this class, beyond saying all use of AI tools in assignments is banned?", "format": "y/n"},
     "Q9": {"question": "Do you use a platform for class discussions online?", "format": "y/n"},
     "Q10": {"question": "Do you use a course website like Brightspace to share materials?", "format": "y/n"},
     "Q11": {"question": "Do you provide solutions to homework assignments?", "format": "y/n"},
@@ -67,7 +67,7 @@ INVENTORY_QUESTIONS = {
     "Q50": {"question": "Do you talk with colleagues about how to teach this course?", "format": "y/n"},
     "Q51": {"question": "Relevant to this course, did you read articles or attend workshops to improve your teaching?", "format": "y/n"},
     "Q52": {"question": "Have you observed another instructor's class to get ideas?", "format": "y/n"},
-    "Q53": {"question": "Do you have any comments or want to mention other teaching practices that you use in this course?",
+    "Q53": {"question": "Do you have any comments about this inventory?",
             "format": "text"}
 }
 
@@ -99,8 +99,7 @@ For each answer you find, provide:
 CORE QUESTIONS:
 
 Q1 (Instructor Name):
-- Look for lines with "Instructor:" or containing "Instructor"/"Professor" 
-- Must be followed by instructor's name
+- Look for "Instructor" or containing "Teacher"/"Professor" followed by a name
 
 Q2 (Course Number):
 - Format: "PSY ####" (or NSC/BSCI etc.)
@@ -109,6 +108,7 @@ Q2 (Course Number):
 
 Q3 (Semester/Year):
 - Look for full semester name + four-digit year
+- Could say "Spring", "Fall" or "Summer" followed by a year
 - Check document names (e.g., "S2021", "F21")
 - Must have both semester and year explicitly stated
 
@@ -141,6 +141,11 @@ Look for skills explicitly tied to:
 - Course modules
 Must connect skills to particular content/activities
 
+Q8 (AI Policy):
+Look for
+- Artificial Intelligence or AI
+- ChatGPT
+
 Q9 (Online Discussions):
 Look for:
 - Discussion board (likely on Brightspace)
@@ -154,6 +159,14 @@ Q10 (course website):
 Look for:
 - Brightspace, Canvas etc.
 - mention of a "course website"
+
+Q15 (sharing material):
+Look for information on slides or lecture notes that
+- "will be posted"
+- "will be made available"
+
+Q19 (grading rubrics)"
+Look for mention of "rubric"
 
 Q27/28 (Response Systems):
 Look for:
@@ -173,6 +186,11 @@ Look for:
 Q33 (Team work):
 Look for:
 -Group work; group assignment
+
+Q34 (revision):
+Look for:
+-"revision"
+-"revised"
 
 Q35 (revision based on feedback):
 Look for:
@@ -509,6 +527,7 @@ def display_section(section_name, question_ids, current_answers):
             
             # Question and input widget
             with cols[0]:
+                print(q_id)
                 answer = create_input_widget(q_id, question_info, current_value)
                 section_answers[q_id] = answer
                 
