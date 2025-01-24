@@ -880,10 +880,11 @@ def generate_syllabus_suggestions(answers):
                         [f"Q{i}" for i in range(45, 53)])  # TA and collaboration info
     
     # Create prompt for LLM
-    prompt = """Based on these teaching inventory answers, provide sample syllabus text that is clear, 
+    prompt = """You are an expert in the best practices for syllabus development in higher education.
+    Based on these teaching inventory answers, provide sample syllabus text that is clear, 
     direct, and student-friendly. For each section:
     1. Provide ready-to-use syllabus language in plain English (avoid jargon and words like "utilize")
-    2. Add brief notes about what specific details the instructor should add
+    2. Add brief notes about what specific details could be added that you do not have
     
     Organize the suggestions into these syllabus sections:
     - Course Materials and Resources
