@@ -143,8 +143,10 @@ Must connect skills to particular content/activities
 
 Q8 (AI Policy):
 Look for
-- Artificial Intelligence or AI
-- ChatGPT
+- "Artificial Intelligence" or "AI" and "policy"
+- "ChatGPT"
+- "Generative AI"
+- "LLM" or "Large language models"
 
 Q9 (Online Discussions):
 Look for:
