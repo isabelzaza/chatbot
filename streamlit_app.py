@@ -616,7 +616,7 @@ def process_sections(analyzed_answers):
                 st.markdown(suggestions)
                 st.info("You can copy these notes for future use when developing your syllabus.")
         # elif suggestions_wanted == "No":
-        st.success("Thank you for participating! You may now close the app.")
+        st.success("Thank you for participating! You may now close this browser - you results are already saved.")
         
         return
     
