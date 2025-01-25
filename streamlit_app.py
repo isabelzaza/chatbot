@@ -226,6 +226,10 @@ Look for:
 - Lists of TA names/emails
 - Mentions of "TA" or "LA"
 
+Q46/Q47
+If answer to Q45 was "no" then the answer to both Q46 and Q47 should be "not applicable" and the evidence listed as "no for Q45"
+
+
 
 IMPORTANT: Only provide answers with explicit evidence from the documents. Do not infer or guess.
 
