@@ -159,8 +159,9 @@ Look for:
 
 Q10 (course website):
 Look for:
-- Brightspace, Canvas etc.
-- mention of a "course website"
+- "Brightspace", "Canvas" etc.
+- "posted on" 
+- "course website"
 
 Q13 (practice tests)
 Look for:
