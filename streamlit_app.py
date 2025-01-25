@@ -956,34 +956,7 @@ def generate_syllabus_suggestions(answers):
 
     return make_llm_request_for_suggestions(prompt)
     
-    # Add relevant answers to prompt
-    suggestions_needed = []
-    for q_id, answer in answers.items():
-        if q_id not in SKIP_QUESTIONS and answer:  # Only include questions with answers
-            question_text = INVENTORY_QUESTIONS[q_id]["question"]
-            if answer == "Yes":
-                suggestions_needed.append(f"✓ {question_text}")
-            elif answer == "No":
-                suggestions_needed.append(f"○ {question_text}")
-            else:
-                suggestions_needed.append(f"• {question_text}: {answer}")
-    
-    prompt += "\n".join(suggestions_needed)
-    
-    # Add specific guidance for the response
-    prompt += """
 
-    For your response:
-    1. Focus on practical, specific language that can be directly adapted for a syllabus
-    2. Group related suggestions together under appropriate syllabus sections
-    3. Use clear, student-centered language that explains both what will be done and why it benefits students
-    4. Include guidance on what course-specific details the instructor should add
-    5. Prioritize documenting existing practices (marked with ✓) while also suggesting improvements for areas marked with ○
-
-    Please provide your recommendations in a clear, organized format that makes it easy for instructors to adapt 
-    and integrate into their syllabi."""
-
-    return make_llm_request_for_suggestions(prompt)
 
 def main():
     st.set_page_config(layout="wide")
