@@ -225,11 +225,10 @@ Look for:
 - "Teaching assistants" sections
 - Lists of TA names/emails
 - Mentions of "TA" or "LA"
+- if you find no mention at all, set to "no"
 
 Q46/Q47
-If answer to Q45 was "no" then the answer to both Q46 and Q47 should be "not applicable" and the evidence listed as "no for Q45"
-
-
+If the answer to Q45 was "no" then the answer to both Q46 and Q47 should be "not applicable" and the evidence listed as "no for Q45"
 
 IMPORTANT: Only provide answers with explicit evidence from the documents. Do not infer or guess.
 
