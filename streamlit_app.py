@@ -162,10 +162,30 @@ Look for:
 - Brightspace, Canvas etc.
 - mention of a "course website"
 
+Q13 (practice tests)
+Look for:
+-	“practice test”, “old test”
+
+Q14 (videos)
+Look for:
+ -“videos”, “online lecture”, “recorded lecture”
+
 Q15 (sharing material):
 Look for information on slides or lecture notes that
 - "will be posted"
 - "will be made available"
+
+Q16 (study aids):
+Look for
+-	“reading guide”, “study guide”
+
+Q17 (articles)
+Look for
+-	“primary articles”, “research articles”
+
+Q18 (student work examples)
+Look for
+-	“examples of good work”, “example papers”, “examples from prior semesters”
 
 Q19 (grading rubrics)"
 Look for mention of "rubric"
@@ -204,6 +224,7 @@ Look for:
 - "Teaching assistants" sections
 - Lists of TA names/emails
 - Mentions of "TA" or "LA"
+
 
 IMPORTANT: Only provide answers with explicit evidence from the documents. Do not infer or guess.
 
