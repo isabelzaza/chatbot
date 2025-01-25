@@ -21,53 +21,52 @@ INVENTORY_QUESTIONS = {
     "Q11": {"question": "Do you provide solutions to homework assignments?", "format": "y/n"},
     "Q12": {"question": "Do you share examples of how to solve problems (e.g., step-by-step guides)?", "format": "y/n"},
     "Q13": {"question": "Do you give practice tests or past exam papers?", "format": "y/n"},
-    "Q14": {"question": "Do you post videos, animations, or simulations to explain course content?", "format": "y/n"},
-    "Q15": {"question": "Do you share your lecture slides, notes or recording of lectures with students (either before or after class)?", "format": "y/n"},
-    "Q16": {"question": "Do you provide other materials, like reading or study aids?", "format": "y/n"},
-    "Q17": {"question": "Do you give students access to articles or research related to the course?", "format": "y/n"},
-    "Q18": {"question": "Do you share examples of excellent student papers or projects?", "format": "y/n"},
-    "Q19": {"question": "Do you provide grading guides/rubrics to explain how assignments will be marked?", "format": "y/n"},
-    "Q20": {"question": "Do you regularly use a strategy to elicit student questions in class -beyond saying are there any questions and moving on?", "format": "y/n"},
-    "Q21": {"question": "In a typical class (excluding special days like exams or student presentations), what is the proportion of time for which students work in small groups?", "format": "percentage (0 to 100)"},
-    "Q22": {"question": "In a typical class (excluding special days), what is the proportion of time for which you lecture?", "format": "percentage (0 to 100)"},
-    "Q23": {"question": "What is the longest duration (in mins) you lecture before breaking into an entirely different activity (not just stopping to ask a question or invite questions)?", "format": "number (minutes)"},
-    "Q24": {"question": "How often do you use demonstrations, simulations, or videos?", 
+    "Q14": {"question": "Do you share your lecture slides, notes or recording of lectures with students (either before or after class)?", "format": "y/n"},
+    "Q15": {"question": "Do you provide other materials, like reading or study aids?", "format": "y/n"},
+    "Q16": {"question": "Do you give students access to articles or research related to the course?", "format": "y/n"},
+    "Q17": {"question": "Do you share examples of excellent student papers or projects?", "format": "y/n"},
+    "Q18": {"question": "Do you provide grading guides/rubrics to explain how assignments will be marked?", "format": "y/n"},
+    "Q19": {"question": "Do you regularly use a strategy to elicit student questions in class -beyond saying are there any questions and moving on?", "format": "y/n"},
+    "Q20": {"question": "In a typical class (excluding special days like exams or student presentations), what is the proportion of time for which students work in small groups?", "format": "percentage (0 to 100)"},
+    "Q21": {"question": "In a typical class (excluding special days), what is the proportion of time for which you lecture?", "format": "percentage (0 to 100)"},
+    "Q22": {"question": "What is the longest duration (in mins) you lecture before breaking into an entirely different activity (not just stopping to ask a question or invite questions)?", "format": "number (minutes)"},
+    "Q23": {"question": "How often do you use demonstrations, simulations, or videos?", 
             "format": "choice: never/rarely/once in a while/every week/every class"},
-    "Q25": {"question": "If you show a video, do you provide students with detailed instructions of what to look for in the video, and follow-up with a discussion?", "format": "y/n"},
-    "Q26": {"question": "How often do you talk about why the material might be useful or interesting from a student's point of view?", 
+    "Q24": {"question": "If you show a video, do you provide students with detailed instructions of what to look for in the video, and follow-up with a discussion?", "format": "y/n"},
+    "Q25": {"question": "How often do you talk about why the material might be useful or interesting from a student's point of view?", 
             "format": "choice: never/rarely/once in a while/every week/every class"},
-    "Q27": {"question": "Do you use a response system (e.g., Top hat) for ungraded activities?", 
+    "Q26": {"question": "Do you use a response system (e.g., Top hat) for ungraded activities?", 
             "format": "choice: never/rarely/once in a while/every week/every class"},
-    "Q28": {"question": "Do you use a response system (e.g., Top hat) for graded activities?", 
+    "Q27": {"question": "Do you use a response system (e.g., Top hat) for graded activities?", 
             "format": "choice: never/rarely/once in a while/every week/every class"},
-    "Q29": {"question": "Do you give homework or practice problems that do not count towards grade?", "format": "y/n"},
-    "Q30": {"question": "Do you give homework or problems that count towards grade?", "format": "y/n"},
-    "Q31": {"question": "Do you assign a project or paper where students have some choice about the topic?", "format": "y/n"},
-    "Q32": {"question": "Do you encourage students to work together on individual assignments?", "format": "y/n"},
-    "Q33": {"question": "Do you give group assignments?", "format": "y/n"},
-    "Q34": {"question": "Do you ask students for anonymous feedback outside of end of term course reviews", "format": "y/n"},
-    "Q35": {"question": "Do you allow students to revise their work based on feedback?", "format": "y/n"},
-    "Q36": {"question": "Do students have access to their graded exams and other assignments?", "format": "y/n"},
-    "Q37": {"question": "Do you share answer keys for graded exams and other assignments?", "format": "y/n"},
-    "Q38": {"question": "Do you require students to include a statement regarding their use of AI tools/LLMs on submitted assignments, or submit some kind of record to delineate which parts of the assignment represent their own intellectual contributions versus those of generative AI?", "format": "y/n"},
-    "Q39": {"question": "Do you encourage students to meet with you to discuss their progress?", "format": "y/n"},
-    "Q40": {"question": "Do you give a test at the beginning of the course to see what students already know?", "format": "y/n"},
-    "Q41": {"question": "Do you use a pre-and-post test to measure how much students learn in the course?", "format": "y/n"},
-    "Q42": {"question": "Do you ask students about their interest or feelings about the subject before and after the course?", "format": "y/n"},
-    "Q43": {"question": "Do you give students some control over their learning, like choosing topics or how they will be graded?", "format": "y/n"},
-    "Q44": {"question": "Do you try new teaching methods or materials and measure how well they work?", 
+    "Q28": {"question": "Do you give homework or practice problems that do not count towards grade?", "format": "y/n"},
+    "Q29": {"question": "Do you give homework or problems that count towards grade?", "format": "y/n"},
+    "Q30": {"question": "Do you assign a project or paper where students have some choice about the topic?", "format": "y/n"},
+    "Q31": {"question": "Do you encourage students to work together on individual assignments?", "format": "y/n"},
+    "Q32": {"question": "Do you give group assignments?", "format": "y/n"},
+    "Q33": {"question": "Do you ask students for anonymous feedback outside of end of term course reviews", "format": "y/n"},
+    "Q34": {"question": "Do you allow students to revise their work based on feedback?", "format": "y/n"},
+    "Q35": {"question": "Do students have access to their graded exams and other assignments?", "format": "y/n"},
+    "Q36": {"question": "Do you share answer keys for graded exams and other assignments?", "format": "y/n"},
+    "Q37": {"question": "Do you require students to include a statement regarding their use of AI tools/LLMs on submitted assignments, or submit some kind of record to delineate which parts of the assignment represent their own intellectual contributions versus those of generative AI?", "format": "y/n"},
+    "Q38": {"question": "Do you encourage students to meet with you to discuss their progress?", "format": "y/n"},
+    "Q39": {"question": "Do you give a test at the beginning of the course to see what students already know?", "format": "y/n"},
+    "Q40": {"question": "Do you use a pre-and-post test to measure how much students learn in the course?", "format": "y/n"},
+    "Q41": {"question": "Do you ask students about their interest or feelings about the subject before and after the course?", "format": "y/n"},
+    "Q42": {"question": "Do you give students some control over their learning, like choosing topics or how they will be graded?", "format": "y/n"},
+    "Q43": {"question": "Do you try new teaching methods or materials and measure how well they work?", 
             "format": "choice: never/rarely/sometimes/often"},
-    "Q45": {"question": "Do you have graduate TAs or undergraduate LAs for this course?", "format": "y/n"},
-    "Q46": {"question": "Do you provide TAs/LAs with some training on teaching methods?", 
+    "Q44": {"question": "Do you have graduate TAs or undergraduate LAs for this course?", "format": "y/n"},
+    "Q45": {"question": "Do you provide TAs/LAs with some training on teaching methods?", 
             "format": "choice: not applicable/no/yes"},
-    "Q47": {"question": "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing?", 
+    "Q46": {"question": "Do you meet with TAs/LAs regularly to talk about teaching and how students are doing?", 
             "format": "choice: not applicable/no/yes"},
-    "Q48": {"question": "Do you use teaching materials from other instructors?", "format": "y/n"},
-    "Q49": {"question": "Do you use some of the same teaching materials as other instructors of the same course in your department?", "format": "y/n"},
-    "Q50": {"question": "Do you talk with colleagues about how to teach this course?", "format": "y/n"},
-    "Q51": {"question": "Relevant to this course, did you read articles or attend workshops to improve your teaching?", "format": "y/n"},
-    "Q52": {"question": "Have you observed another instructor's class to get ideas?", "format": "y/n"},
-    "Q53": {"question": "Do you have any comments about this inventory?",
+    "Q47": {"question": "Do you use teaching materials from other instructors?", "format": "y/n"},
+    "Q48": {"question": "Do you use some of the same teaching materials as other instructors of the same course in your department?", "format": "y/n"},
+    "Q49": {"question": "Do you talk with colleagues about how to teach this course?", "format": "y/n"},
+    "Q50": {"question": "Relevant to this course, did you read articles or attend workshops to improve your teaching?", "format": "y/n"},
+    "Q51": {"question": "Have you observed another instructor's class to get ideas?", "format": "y/n"},
+    "Q52": {"question": "Do you have any comments about this inventory?",
             "format": "text"}
 }
 
@@ -75,14 +74,14 @@ INVENTORY_QUESTIONS = {
 SECTIONS = {
     "Section I: Course Details": ["Q1", "Q2", "Q3", "Q4"],
     "Section II: Information Provided to Students": ["Q5", "Q6", "Q7", "Q8"],
-    "Section III: Supporting Materials": list(f"Q{i}" for i in range(9, 20)),
-    "Section IV: In-Class Features": list(f"Q{i}" for i in range(20, 29)),
-    "Section V: Assignments": list(f"Q{i}" for i in range(29, 34)),
-    "Section VI: Feedback and Testing": list(f"Q{i}" for i in range(34, 40)),
-    "Section VII: Other": list(f"Q{i}" for i in range(40, 45)),
-    "Section VIII: Teaching Assistants": list(f"Q{i}" for i in range(45, 48)),
-    "Section IX: Collaboration": list(f"Q{i}" for i in range(48, 53)),
-    "Section X: Comments": ["Q53"]
+    "Section III: Supporting Materials": list(f"Q{i}" for i in range(9, 19)),  
+    "Section IV: In-Class Features": list(f"Q{i}" for i in range(19, 28)),    
+    "Section V: Assignments": list(f"Q{i}" for i in range(28, 33)),          
+    "Section VI: Feedback and Testing": list(f"Q{i}" for i in range(33, 39)), 
+    "Section VII: Other": list(f"Q{i}" for i in range(39, 44)),              
+    "Section VIII: Teaching Assistants": list(f"Q{i}" for i in range(44, 47)), 
+    "Section IX: Collaboration": list(f"Q{i}" for i in range(47, 52)),       
+    "Section X: Comments": ["Q52"]                                            
 }
 # LLM Prompt Template
 INVENTORY_PROMPT = """
@@ -91,7 +90,7 @@ Consider ALL provided documents together.
 
 FORMAT GUIDELINES:
 For each answer you find, provide:
-1. Question number (Q1-Q52)
+1. Question number (Q1-Q51)
 2. Question text
 3. Answer - ONLY if explicitly found in documents
 4. Evidence: Quote "exactly as appears" (From Document 1/2)
@@ -167,68 +166,64 @@ Q13 (practice tests)
 Look for:
 -	“practice test”, “old test”
 
-Q14 (videos)
-Look for:
- -“videos”, “online lecture”, “recorded lecture”
-
-Q15 (sharing material):
+Q14 (sharing material):
 Look for information on slides or lecture notes that
 - "will be posted"
 - "will be made available"
 
-Q16 (study aids):
+Q15 (study aids):
 Look for
 -	“reading guide”, “study guide”
 
-Q17 (articles)
+Q16 (articles)
 Look for
 -	“primary articles”, “research articles”
 
-Q18 (student work examples)
+Q17 (student work examples)
 Look for
 -	“examples of good work”, “example papers”, “examples from prior semesters”
 
-Q19 (grading rubrics)"
+Q18 (grading rubrics)"
 Look for mention of "rubric"
 
-Q27/28 (Response Systems):
+Q26/27 (Response Systems):
 Look for:
 - TopHat, iClicker, etc.
-- Q27: Ungraded use ("practice", "demos")
-- Q28: Graded use ("points", "required")
+- Q26: Ungraded use ("practice", "demos")
+- Q27: Graded use ("points", "required")
 
-Q29/30 (Homework):
-- Q29: Ungraded practice/optional work
-- Q30: Graded assignments/required work
+Q28/29 (Homework):
+- Q28: Ungraded practice/optional work
+- Q29: Graded assignments/required work
 Check if points/grades assigned
 
-Q31 (Project with options):
+Q30 (Project with options):
 Look for:
 -discussion of a project or assignment, with "option(s)" or "choice(s)"
 
-Q33 (Team work):
+Q32 (Team work):
 Look for:
 -Group work; group assignment
 
-Q34 (revision):
+Q33 (revision):
 Look for:
 -"revision"
 -"revised"
 
-Q35 (revision based on feedback):
+Q34 (revision based on feedback):
 Look for:
 - mention of "revision" or "revise"
 - feedback
 
-Q45 (TAs/LAs):
+Q44 (TAs/LAs):
 Look for:
 - "Teaching assistants" sections
 - Lists of TA names/emails
 - Mentions of "TA" or "LA"
 - if you find no mention at all, set to "no"
 
-Q46/Q47
-If the answer to Q45 was "no" then the answer to both Q46 and Q47 should be "not applicable" and the evidence listed as "no for Q45"
+Q45/Q46
+If the answer to Q44 was "no" then the answer to both Q45 and Q46 should be "not applicable" and the evidence listed as "no for Q45"
 
 IMPORTANT: Only provide answers with explicit evidence from the documents. Do not infer or guess.
 
@@ -293,7 +288,7 @@ def save_to_google_sheets(answers):
         
         # Create row of answers in correct order
         row = []
-        for i in range(1, 54):  # Updated to include Q53
+        for i in range(1, 53):  # Updated to include Q52
             q_id = f"Q{i}"
             row.append(answers.get(q_id, ""))
             
@@ -462,7 +457,7 @@ def create_input_widget(question_id, question_info, current_value=None):
     
     has_no_tas = st.session_state.all_answers.get("Q45") == "No"
 
-    if question_id == "Q45":
+    if question_id == "Q44":
         response = st.radio(
             question_info["question"],
             options=["No", "Yes"],
@@ -471,11 +466,11 @@ def create_input_widget(question_id, question_info, current_value=None):
             key=f"input_{question_id}"
         )
         if response == "No":
+            st.session_state.all_answers["Q45"] = "not applicable"
             st.session_state.all_answers["Q46"] = "not applicable"
-            st.session_state.all_answers["Q47"] = "not applicable"
         return response
 
-    if question_id in ["Q46", "Q47"]:
+    if question_id in ["Q45", "Q46"]:
         options = ["not applicable", "no", "yes"]
         if has_no_tas:
             value = "not applicable"
@@ -704,7 +699,7 @@ def process_answer_text(question_id, answer_text):
     
     try:
         # Handle TA-dependent questions
-        if question_id in ["Q46", "Q47"] and 'all_answers' in st.session_state:
+        if question_id in ["Q45", "Q46"] and 'all_answers' in st.session_state:
             if st.session_state.all_answers.get("Q45") == "No":
                 return "not applicable"
                 
@@ -724,7 +719,7 @@ def process_answer_text(question_id, answer_text):
             options = q_format.split(":")[1].strip().split("/")
             
             # Special handling for frequency-based questions
-            if question_id in ["Q24", "Q26", "Q27", "Q28"]:
+            if question_id in ["Q23", "Q25", "Q26", "Q27"]:
                 if "never" in answer_text or "don't" in answer_text or "not used" in answer_text:
                     return "never"
                 elif "every class" in answer_text or "each class" in answer_text:
@@ -736,8 +731,8 @@ def process_answer_text(question_id, answer_text):
                 elif "sometimes" in answer_text or "occasionally" in answer_text:
                     return "once in a while"
             
-            # Handle Q44 (trying new methods)
-            elif question_id == "Q44":
+            # Handle Q43 (trying new methods)
+            elif question_id == "Q43":
                 if "never" in answer_text or "don't" in answer_text:
                     return "never"
                 elif "often" in answer_text or "frequently" in answer_text:
@@ -747,8 +742,8 @@ def process_answer_text(question_id, answer_text):
                 elif "sometimes" in answer_text or "occasionally" in answer_text:
                     return "sometimes"
             
-            # Handle TA questions (Q46, Q47)
-            elif question_id in ["Q46", "Q47"]:
+            # Handle TA questions (Q45, Q46)
+            elif question_id in ["Q45", "Q46"]:
                 if "not applicable" in answer_text or "n/a" in answer_text:
                     return "not applicable"
                 elif any(yes_word in answer_text for yes_word in ['yes', 'do', 'does', 'provided']):
@@ -900,9 +895,9 @@ def generate_syllabus_suggestions(answers):
     
     # Questions to skip (not typically in syllabus or practice-based)
     SKIP_QUESTIONS = set([f"Q{i}" for i in range(1, 5)] +  # Basic info
-                        [f"Q{i}" for i in range(20, 26)] +  # In-class practices
-                        ["Q34"] +  # Feedback practices
-                        [f"Q{i}" for i in range(45, 53)])  # TA and collaboration info
+                        [f"Q{i}" for i in range(19, 25)] +  # In-class practices
+                        ["Q33"] +  # Feedback practices
+                        [f"Q{i}" for i in range(44, 52)])  # TA and collaboration info
     
     # Create prompt for LLM
     prompt = """You are an expert in the best practices for syllabus development in higher education.
