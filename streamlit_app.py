@@ -987,6 +987,8 @@ def main():
         If you have a syllabus for the course, or any other document relevant to your teaching practices 
         in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions manually. 
         At the end, I will provide you with suggestions for information to add to your syllabus.
+                 
+        This app uses Generative AI, but only through Vanderbilt's own secure Amplify system.              
         """)
         
         # File uploaders in columns
