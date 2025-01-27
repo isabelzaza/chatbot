@@ -1004,7 +1004,7 @@ def main():
         
         # Start button
         if st.button("Start with these documents"):
-            with st.spinner('Processing documents...'):
+            with st.spinner('Wait while AI extracts information...'):
                 # Process uploaded files
                 content1, filename1 = process_uploaded_file(file1) if file1 else (None, None)
                 content2, filename2 = process_uploaded_file(file2) if file2 else (None, None)
