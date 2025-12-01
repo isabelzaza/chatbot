@@ -416,7 +416,7 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     }
     
     # DEBUG: Show what model we're using
-        st.session_state.debug_model = payload["data"]["model"]
+    st.session_state.debug_model = payload["data"]["model"]
 
     
     try:
