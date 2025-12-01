@@ -420,8 +420,6 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
             response = requests.post(url, headers=headers, data=json.dumps(payload))
             
             if response.status_code == 200:
-                 st.write("DEBUG - API Response Status:", response.status_code)
-                 st.write("DEBUG - Raw Response:", response.text[:500])  # First 500 chars
                 response_data = response.json()
                 
                 # Add logging to understand response structure
