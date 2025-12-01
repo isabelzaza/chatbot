@@ -401,7 +401,7 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
 
     payload = {
     "data": {
-        "model": "anthropic.claude-3-5-sonnet-v2",
+        "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
         "temperature": 0.3,
         "max_tokens": 4096,
         "dataSources": [],
@@ -409,7 +409,7 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         "options": {
             "ragOnly": False,
             "skipRag": True,
-            "model": {"id": "anthropic.claude-3-5-sonnet-v2"},
+            "model": {"id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
             "prompt": prompt,
         },
         }
