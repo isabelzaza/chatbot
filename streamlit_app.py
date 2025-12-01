@@ -414,13 +414,22 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
             },
         }
     }
-
+    
+    # DEBUG: Show what model we're using
+    st.write("DEBUG - Model being requested:", payload["data"]["model"])
+    
     try:
         with st.spinner('Analyzing document(s) and matching to inventory questions...'):
             response = requests.post(url, headers=headers, data=json.dumps(payload))
             
             if response.status_code == 200:
                 response_data = response.json()
+
+                st.write("DEBUG - Status:", response.status_code)
+                st.write("DEBUG - Response keys:", response_data.keys() if isinstance(response_data, dict) else "Not a dict")
+                if isinstance(response_data, dict) and "data" in response_data:
+                    st.write("DEBUG - Data type:", type(response_data["data"]))
+                    st.write("DEBUG - Data preview:", str(response_data["data"])[:200])
                 
                 # Add logging to understand response structure
                 st.write("Debug - Response structure:", response_data)
