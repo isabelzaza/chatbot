@@ -416,7 +416,8 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     }
     
     # DEBUG: Show what model we're using
-    st.write("DEBUG - Model being requested:", payload["data"]["model"])
+        st.session_state.debug_model = payload["data"]["model"]
+
     
     try:
         with st.spinner('Analyzing document(s) and matching to inventory questions...'):
@@ -424,9 +425,9 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
             
             if response.status_code == 200:
                 response_data = response.json()
-
-                st.write("DEBUG - Status:", response.status_code)
-                st.write("DEBUG - Response keys:", response_data.keys() if isinstance(response_data, dict) else "Not a dict")
+                st.session_state.debug_status = response.status_code
+                st.session_state.debug_response = str(response_data)[:500]
+                
                 if isinstance(response_data, dict) and "data" in response_data:
                     st.write("DEBUG - Data type:", type(response_data["data"]))
                     st.write("DEBUG - Data preview:", str(response_data["data"])[:200])
@@ -968,6 +969,13 @@ def generate_syllabus_suggestions(answers):
 
 def main():
     st.set_page_config(layout="wide")
+
+    # Show debug info if available
+    if 'debug_model' in st.session_state:
+        st.sidebar.write("🔍 DEBUG INFO")
+        st.sidebar.write("Model:", st.session_state.debug_model)
+        st.sidebar.write("Status:", st.session_state.get('debug_status', 'N/A'))
+        st.sidebar.write("Response:", st.session_state.get('debug_response', 'N/A')[:200])
     
     # Initialize session state
     if 'analyzed_answers' not in st.session_state:
