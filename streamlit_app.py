@@ -401,7 +401,6 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
 
     payload = {
     "data": {
-        "model": "gpt-4o-mini",
         "temperature": 0.3,
         "max_tokens": 4096,
         "dataSources": [],
