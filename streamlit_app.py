@@ -409,7 +409,7 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
             "options": {
                 "ragOnly": False,
                 "skipRag": True,
-                "model": {"id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
+                "model": {"id": "claude-4-sonnet"},
                 "prompt": prompt,
             },
         }
