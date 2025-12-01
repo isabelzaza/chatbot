@@ -400,18 +400,18 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     ]
 
     payload = {
-        "data": {
-            "model": "claude-4-sonnet",
-            "temperature": 0.3,
-            "max_tokens": 4096,
-            "dataSources": [],
-            "messages": messages,
-            "options": {
-                "ragOnly": False,
-                "skipRag": True,
-                "model": {"id": "claude-4-sonnet"},
-                "prompt": prompt,
-            },
+    "data": {
+        "model": "anthropic.claude-3-5-sonnet-v2",
+        "temperature": 0.3,
+        "max_tokens": 4096,
+        "dataSources": [],
+        "messages": messages,
+        "options": {
+            "ragOnly": False,
+            "skipRag": True,
+            "model": {"id": "anthropic.claude-3-5-sonnet-v2"},
+            "prompt": prompt,
+        },
         }
     }
     
@@ -1010,25 +1010,6 @@ def main():
         This app uses Generative AI, but only through Vanderbilt's own secure Amplify system.              
         """)
 
-        # DEBUG: Try to list available models
-        if st.button("🔍 Show Available Models"):
-            url = "https://prod-api.vanderbilt.ai/available_models"
-            try:
-                API_KEY = st.secrets["AMPLIFY_API_KEY"]
-                headers = {"Authorization": f"Bearer {API_KEY}"}
-                
-                response = requests.get(url, headers=headers)
-                st.write("Status Code:", response.status_code)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    st.write("### Available models:")
-                    for model in data["data"]["models"]:
-                        st.write(f"**{model['name']}**: `{model['id']}`")
-                else:
-                    st.error(f"Error {response.status_code}: {response.text}")
-            except Exception as e:
-                st.error(f"Error: {str(e)}")
         
         # File uploaders in columns
         col1, col2 = st.columns(2)
