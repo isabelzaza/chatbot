@@ -1009,6 +1009,26 @@ def main():
                  
         This app uses Generative AI, but only through Vanderbilt's own secure Amplify system.              
         """)
+
+        # DEBUG: Try to list available models
+        if st.button("🔍 Show Available Models"):
+            url = "https://prod-api.vanderbilt.ai/available_models"
+            try:
+                API_KEY = st.secrets["AMPLIFY_API_KEY"]
+                headers = {"Authorization": f"Bearer {API_KEY}"}
+                
+                response = requests.get(url, headers=headers)
+                st.write("Status Code:", response.status_code)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    st.write("### Available models:")
+                    for model in data["data"]["models"]:
+                        st.write(f"**{model['name']}**: `{model['id']}`")
+                else:
+                    st.error(f"Error {response.status_code}: {response.text}")
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
         
         # File uploaders in columns
         col1, col2 = st.columns(2)
