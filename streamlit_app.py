@@ -973,6 +973,24 @@ def main():
     # Only show upload page if not started
     if not st.session_state.started:
         st.title("Vanderbilt Psychology Teaching Inventory Helper")
+
+
+# TEMPORARY: Check available models
+    if st.button("🔍 Check Available Models (click me first!)"):
+        url = "https://prod-api.vanderbilt.ai/available_models"
+        headers = {"Authorization": f"Bearer {st.secrets['AMPLIFY_API_KEY']}"}
+        
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            st.write("### Available Models:")
+            for model in data["data"]["models"]:
+                st.write(f"**{model['name']}** - ID: `{model['id']}`")
+        else:
+            st.error(f"Error: {response.status_code}")
+
+# END OF TEMPORARY
+
         
         st.write("""
         This is an inventory of teaching practices as they apply for a specific course in a 
