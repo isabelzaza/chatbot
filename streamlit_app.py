@@ -415,7 +415,7 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     }
     
     # DEBUG: Show what model we're using
-    st.session_state.debug_model = payload["data"]["model"]
+    st.session_state.debug_model = payload["data"]["options"]["model"]["id"]
 
     
     try:
@@ -871,7 +871,6 @@ def make_llm_request_for_suggestions(prompt):
 
     payload = {
         "data": {
-            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
             "temperature": 0.7,  # Slightly higher temperature for more creative suggestions
             "max_tokens": 4096,
             "dataSources": [],
@@ -879,7 +878,7 @@ def make_llm_request_for_suggestions(prompt):
             "options": {
                 "ragOnly": False,
                 "skipRag": True,
-                "model": {"id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
+                "model": {"id": "gpt-4o-mini"},
                 "prompt": prompt,
             },
         }
