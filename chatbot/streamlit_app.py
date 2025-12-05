@@ -317,45 +317,71 @@ def parse_llm_response(response_text):
     current_evidence = None
 
     # DEBUG: Show what we're parsing
-    st.write(f"DEBUG - Parsing response, length: {len(response_text)} characters")
+    st.write("🔍 **DEBUG: Parsing LLM Response**")
+    st.write(f"- Total response length: {len(response_text)} characters")
+    st.write(f"- Total lines: {len(response_text.split(chr(10)))}")
 
     try:
         lines = response_text.split('\n')
+
+        # Track parsing progress
+        questions_found = []
+        answers_found = []
+        evidence_found = []
+
         for i, line in enumerate(lines):
             line = line.strip()
             if not line:
                 continue
-                
+
             # Check for question number at start of line
             if line.startswith('Q') and ':' in line:
                 q_part = line.split(':')[0].strip()
                 if q_part in INVENTORY_QUESTIONS:
+                    questions_found.append(q_part)
+
                     # If we have evidence but no answer for the previous question, try to infer answer
                     if current_question and current_question not in answers and current_question in evidence:
                         inferred_answer = infer_answer_from_evidence(current_question, evidence[current_question])
                         if inferred_answer:
                             answers[current_question] = inferred_answer
-                    
+
                     current_question = q_part
                     current_evidence = None
-                    
+
             # Check for evidence line
             elif line.startswith('Evidence:') and current_question:
                 current_evidence = line.replace('Evidence:', '').strip()
                 evidence[current_question] = current_evidence
-                
+                evidence_found.append(current_question)
+
                 # If we have evidence but no answer yet, try to infer answer
                 if current_question not in answers:
                     inferred_answer = infer_answer_from_evidence(current_question, current_evidence)
                     if inferred_answer:
                         answers[current_question] = inferred_answer
-                    
+
             # Check for answer line
             elif line.startswith('Answer:') and current_question:
                 answer_text = line.replace('Answer:', '').strip()
                 processed_answer = process_answer_text(current_question, answer_text)
                 if processed_answer:
                     answers[current_question] = processed_answer
+                    answers_found.append(current_question)
+
+        # Show parsing results
+        st.write(f"- Questions found in response: {len(questions_found)}")
+        st.write(f"- Answers extracted: {len(answers_found)}")
+        st.write(f"- Evidence found: {len(evidence_found)}")
+
+        if questions_found:
+            st.write(f"- First few questions found: {questions_found[:10]}")
+        else:
+            st.error("⚠️ No questions found in expected format (Q1:, Q2:, etc.)")
+            st.write("**First 10 non-empty lines of response:**")
+            non_empty = [l.strip() for l in lines if l.strip()][:10]
+            for idx, l in enumerate(non_empty, 1):
+                st.text(f"{idx}. {l[:100]}")
 
     except Exception as e:
         st.error(f"Error parsing LLM response: {str(e)}")
@@ -367,12 +393,23 @@ def parse_llm_response(response_text):
             if inferred_answer:
                 answers[q_id] = inferred_answer
 
-    # DEBUG: Show what was extracted
-    st.write(f"DEBUG - Extracted {len(answers)} answers and {len(evidence)} evidence items")
+    # DEBUG: Final summary
+    st.write("---")
+    st.write("✅ **FINAL EXTRACTION SUMMARY**")
+    st.write(f"- **Total answers extracted:** {len(answers)}")
+    st.write(f"- **Total evidence items:** {len(evidence)}")
+
     if answers:
-        st.write("Sample answers:", list(answers.items())[:5])
+        st.success(f"Successfully extracted {len(answers)} answers!")
+        with st.expander("View extracted answers (first 10)"):
+            for q_id, answer in list(answers.items())[:10]:
+                st.write(f"**{q_id}:** {answer}")
     else:
-        st.warning("No answers were extracted from the LLM response!")
+        st.error("❌ NO ANSWERS WERE EXTRACTED!")
+        st.write("**Possible reasons:**")
+        st.write("1. LLM didn't follow the expected format (Q1:, Answer:, Evidence:)")
+        st.write("2. LLM couldn't find information in the document")
+        st.write("3. Response format changed - check the 'First 50 lines' above")
 
     # Store evidence in session state
     st.session_state.evidence = evidence
@@ -402,6 +439,16 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     # Use the existing INVENTORY_PROMPT template
     prompt = INVENTORY_PROMPT.format(documents=documents_text)
 
+    # DEBUG: Show prompt details
+    st.write("🔍 **DEBUG: Request Details**")
+    st.write(f"- Document 1 length: {len(file_content1)} characters")
+    if file_content2:
+        st.write(f"- Document 2 length: {len(file_content2)} characters")
+    st.write(f"- Total prompt length: {len(prompt)} characters")
+
+    with st.expander("📄 View Full Prompt Being Sent to LLM"):
+        st.text_area("Prompt", prompt, height=200)
+
     messages = [
         {
             "role": "user",
@@ -423,6 +470,9 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         with st.spinner('Analyzing document(s) and matching to inventory questions...'):
             response = requests.post(url, headers=headers, data=json.dumps(payload))
 
+            st.write("🔍 **DEBUG: API Response**")
+            st.write(f"- Status code: {response.status_code}")
+
             if response.status_code == 200:
                 response_data = response.json()
                 st.session_state.debug_status = response.status_code
@@ -431,9 +481,17 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
                 # OpenAI standard response parsing
                 content = response_data["choices"][0]["message"]["content"]
 
-                # DEBUG: Show the full response content
-                st.write("DEBUG - Full LLM Response:")
-                st.text_area("Response Content", content, height=300)
+                st.write(f"- Response length: {len(content)} characters")
+                st.write(f"- Model used: {response_data.get('model', 'unknown')}")
+                st.write(f"- Tokens used: {response_data.get('usage', {})}")
+
+                # Show first 50 lines of response
+                st.write("📝 **First 50 lines of LLM response:**")
+                lines = content.split('\n')
+                st.text_area("Response Preview", '\n'.join(lines[:50]), height=300)
+
+                with st.expander("📄 View Full LLM Response"):
+                    st.text_area("Full Response", content, height=400, key="full_response")
 
                 return content
             else:
