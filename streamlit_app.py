@@ -1,4 +1,4 @@
-import requests
+famplimport requests
 import json
 import streamlit as st
 import PyPDF2
@@ -369,7 +369,12 @@ def parse_llm_response(response_text):
                     answers[current_question] = processed_answer
                     answers_found.append(current_question)
 
-        # Show parsing results
+        # Show parsing results and SAVE TO SESSION STATE
+        st.session_state.debug_questions_found = len(questions_found)
+        st.session_state.debug_answers_found = len(answers_found)
+        st.session_state.debug_evidence_found = len(evidence_found)
+        st.session_state.debug_questions_list = questions_found[:10]
+
         st.write(f"- Questions found in response: {len(questions_found)}")
         st.write(f"- Answers extracted: {len(answers_found)}")
         st.write(f"- Evidence found: {len(evidence_found)}")
@@ -380,6 +385,7 @@ def parse_llm_response(response_text):
             st.error("⚠️ No questions found in expected format (Q1:, Q2:, etc.)")
             st.write("**First 10 non-empty lines of response:**")
             non_empty = [l.strip() for l in lines if l.strip()][:10]
+            st.session_state.debug_first_lines = non_empty
             for idx, l in enumerate(non_empty, 1):
                 st.text(f"{idx}. {l[:100]}")
 
@@ -439,12 +445,19 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     # Use the existing INVENTORY_PROMPT template
     prompt = INVENTORY_PROMPT.format(documents=documents_text)
 
-    # DEBUG: Show prompt details
-    st.write("🔍 **DEBUG: Request Details**")
-    st.write(f"- Document 1 length: {len(file_content1)} characters")
+    # DEBUG: Show prompt details and save to session state
+    debug_info = []
+    debug_info.append("🔍 **DEBUG: Request Details**")
+    debug_info.append(f"- Document 1 length: {len(file_content1)} characters")
     if file_content2:
-        st.write(f"- Document 2 length: {len(file_content2)} characters")
-    st.write(f"- Total prompt length: {len(prompt)} characters")
+        debug_info.append(f"- Document 2 length: {len(file_content2)} characters")
+    debug_info.append(f"- Total prompt length: {len(prompt)} characters")
+
+    st.session_state.debug_request = "\n".join(debug_info)
+    st.session_state.debug_prompt = prompt
+
+    for line in debug_info:
+        st.write(line)
 
     with st.expander("📄 View Full Prompt Being Sent to LLM"):
         st.text_area("Prompt", prompt, height=200)
@@ -484,6 +497,12 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
                 st.write(f"- Response length: {len(content)} characters")
                 st.write(f"- Model used: {response_data.get('model', 'unknown')}")
                 st.write(f"- Tokens used: {response_data.get('usage', {})}")
+
+                # SAVE TO SESSION STATE
+                st.session_state.debug_llm_response = content
+                st.session_state.debug_response_length = len(content)
+                st.session_state.debug_model_used = response_data.get('model', 'unknown')
+                st.session_state.debug_tokens = response_data.get('usage', {})
 
                 # Show first 50 lines of response
                 st.write("📝 **First 50 lines of LLM response:**")
@@ -1009,12 +1028,37 @@ def generate_syllabus_suggestions(answers):
 def main():
     st.set_page_config(layout="wide")
 
-    # Show debug info if available
+    # Show persistent debug info in sidebar
     if 'debug_model' in st.session_state:
-        st.sidebar.write("🔍 DEBUG INFO")
-        st.sidebar.write("Model:", st.session_state.debug_model)
-        st.sidebar.write("Status:", st.session_state.get('debug_status', 'N/A'))
-        st.sidebar.write("Response:", st.session_state.get('debug_response', 'N/A')[:200])
+        st.sidebar.write("# 🔍 DEBUG INFO")
+
+        with st.sidebar.expander("📊 Extraction Results", expanded=True):
+            st.write(f"**Questions found:** {st.session_state.get('debug_questions_found', 'N/A')}")
+            st.write(f"**Answers extracted:** {st.session_state.get('debug_answers_found', 'N/A')}")
+            st.write(f"**Evidence items:** {st.session_state.get('debug_evidence_found', 'N/A')}")
+
+            if 'debug_questions_list' in st.session_state and st.session_state.debug_questions_list:
+                st.write(f"**Questions:** {', '.join(st.session_state.debug_questions_list)}")
+
+        with st.sidebar.expander("🤖 API Details"):
+            st.write("**Model:**", st.session_state.debug_model)
+            st.write("**Status:**", st.session_state.get('debug_status', 'N/A'))
+            if 'debug_response_length' in st.session_state:
+                st.write("**Response length:**", st.session_state.debug_response_length)
+            if 'debug_tokens' in st.session_state:
+                st.write("**Tokens:**", st.session_state.debug_tokens)
+
+        with st.sidebar.expander("📝 LLM Response Preview"):
+            if 'debug_llm_response' in st.session_state:
+                lines = st.session_state.debug_llm_response.split('\n')[:20]
+                st.text('\n'.join(lines))
+            else:
+                st.write("No response captured")
+
+        with st.sidebar.expander("⚠️ First Lines (if parsing failed)"):
+            if 'debug_first_lines' in st.session_state:
+                for idx, line in enumerate(st.session_state.debug_first_lines, 1):
+                    st.text(f"{idx}. {line[:80]}")
     
     # Initialize session state
     if 'analyzed_answers' not in st.session_state:
@@ -1046,7 +1090,7 @@ def main():
         in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions manually. 
         At the end, we will provide you with suggestions for information to add to your syllabus.
                  
-        This app uses Generative AI, but only through Vanderbilt's own secure Amplify system.              
+        This app uses Generative AI              
         """)
 
         
