@@ -1077,7 +1077,7 @@ def main():
 
         
         st.write("""
-        This is an inventory of teaching practices as they apply for a specific course in a 
+        DEBUG1 This is an inventory of teaching practices as they apply for a specific course in a 
         specific semester. This information is collected only to help us better understand how we teach 
         our courses (it will not be used for any evaluation). The Full inventory has several
         questions but this tool will attempt to help you answer them as fast as possible.
