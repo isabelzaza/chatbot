@@ -315,7 +315,10 @@ def parse_llm_response(response_text):
     evidence = {}
     current_question = None
     current_evidence = None
-    
+
+    # DEBUG: Show what we're parsing
+    st.write(f"DEBUG - Parsing response, length: {len(response_text)} characters")
+
     try:
         lines = response_text.split('\n')
         for i, line in enumerate(lines):
@@ -363,7 +366,14 @@ def parse_llm_response(response_text):
             inferred_answer = infer_answer_from_evidence(q_id, evidence[q_id])
             if inferred_answer:
                 answers[q_id] = inferred_answer
-    
+
+    # DEBUG: Show what was extracted
+    st.write(f"DEBUG - Extracted {len(answers)} answers and {len(evidence)} evidence items")
+    if answers:
+        st.write("Sample answers:", list(answers.items())[:5])
+    else:
+        st.warning("No answers were extracted from the LLM response!")
+
     # Store evidence in session state
     st.session_state.evidence = evidence
     return answers
@@ -419,7 +429,13 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
                 st.session_state.debug_response = str(response_data)[:500]
 
                 # OpenAI standard response parsing
-                return response_data["choices"][0]["message"]["content"]
+                content = response_data["choices"][0]["message"]["content"]
+
+                # DEBUG: Show the full response content
+                st.write("DEBUG - Full LLM Response:")
+                st.text_area("Response Content", content, height=300)
+
+                return content
             else:
                 st.error(f"Request failed with status code {response.status_code}")
                 st.error(response.text)
