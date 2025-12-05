@@ -1,4 +1,4 @@
-famplimport requests
+import requests
 import json
 import streamlit as st
 import PyPDF2
