@@ -334,40 +334,57 @@ def parse_llm_response(response_text):
             if not line:
                 continue
 
-            # Check for question number at start of line
-            if line.startswith('Q') and ':' in line:
-                q_part = line.split(':')[0].strip()
-                if q_part in INVENTORY_QUESTIONS:
-                    questions_found.append(q_part)
+            # Check for question number - handle multiple formats
+            # Format 1: "Q1: Instructor Name"
+            # Format 2: "1. **Question number (Q1)**: Q1"
+            # Format 3: "**Question number (Q1)**: Q1"
+            if 'Q' in line and ':' in line:
+                # Try to extract Q number
+                import re
+                q_match = re.search(r'\b(Q\d+)\b', line)
+                if q_match:
+                    q_part = q_match.group(1)
+                    if q_part in INVENTORY_QUESTIONS:
+                        questions_found.append(q_part)
 
-                    # If we have evidence but no answer for the previous question, try to infer answer
-                    if current_question and current_question not in answers and current_question in evidence:
-                        inferred_answer = infer_answer_from_evidence(current_question, evidence[current_question])
+                        # If we have evidence but no answer for the previous question, try to infer answer
+                        if current_question and current_question not in answers and current_question in evidence:
+                            inferred_answer = infer_answer_from_evidence(current_question, evidence[current_question])
+                            if inferred_answer:
+                                answers[current_question] = inferred_answer
+
+                        current_question = q_part
+                        current_evidence = None
+
+            # Check for evidence line - handle markdown bold
+            # Format 1: "Evidence: text"
+            # Format 2: "**Evidence**: text"
+            elif 'Evidence' in line and ':' in line and current_question:
+                # Remove markdown and extract evidence
+                current_evidence = line.split(':', 1)[1].strip() if ':' in line else ''
+                current_evidence = current_evidence.replace('**', '').strip()
+                if current_evidence:
+                    evidence[current_question] = current_evidence
+                    evidence_found.append(current_question)
+
+                    # If we have evidence but no answer yet, try to infer answer
+                    if current_question not in answers:
+                        inferred_answer = infer_answer_from_evidence(current_question, current_evidence)
                         if inferred_answer:
                             answers[current_question] = inferred_answer
 
-                    current_question = q_part
-                    current_evidence = None
-
-            # Check for evidence line
-            elif line.startswith('Evidence:') and current_question:
-                current_evidence = line.replace('Evidence:', '').strip()
-                evidence[current_question] = current_evidence
-                evidence_found.append(current_question)
-
-                # If we have evidence but no answer yet, try to infer answer
-                if current_question not in answers:
-                    inferred_answer = infer_answer_from_evidence(current_question, current_evidence)
-                    if inferred_answer:
-                        answers[current_question] = inferred_answer
-
-            # Check for answer line
-            elif line.startswith('Answer:') and current_question:
-                answer_text = line.replace('Answer:', '').strip()
-                processed_answer = process_answer_text(current_question, answer_text)
-                if processed_answer:
-                    answers[current_question] = processed_answer
-                    answers_found.append(current_question)
+            # Check for answer line - handle markdown bold
+            # Format 1: "Answer: text"
+            # Format 2: "**Answer**: text"
+            elif 'Answer' in line and ':' in line and current_question:
+                # Remove markdown and extract answer
+                answer_text = line.split(':', 1)[1].strip() if ':' in line else ''
+                answer_text = answer_text.replace('**', '').strip()
+                if answer_text:
+                    processed_answer = process_answer_text(current_question, answer_text)
+                    if processed_answer:
+                        answers[current_question] = processed_answer
+                        answers_found.append(current_question)
 
         # Show parsing results and SAVE TO SESSION STATE
         st.session_state.debug_questions_found = len(questions_found)
