@@ -441,12 +441,12 @@ def parse_llm_response(response_text):
 # LLM Request Function
 def make_llm_request(file_content1, filename1, file_content2=None, filename2=None):
     """Make LLM request with support for one or two documents"""
-    url = "https://api.openai.com/v1/chat/completions"
+    url = "https://prod-api.vanderbilt.ai/chat"
 
     try:
-        API_KEY = st.secrets["OPENAI_API_KEY"]
+        API_KEY = st.secrets["AMPLIFY_API_KEY"]
     except KeyError:
-        st.error("OpenAI API key not found in secrets. Please configure your secrets.toml file.")
+        st.error("Amplify API key not found in secrets. Please configure your secrets.toml file.")
         return None
 
     headers = {
@@ -487,14 +487,23 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     ]
 
     payload = {
-        "model": "gpt-4o-mini",
-        "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": 4096
+        "data": {
+            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "temperature": 0.3,
+            "max_tokens": 4096,
+            "dataSources": [],
+            "messages": messages,
+            "options": {
+                "ragOnly": False,
+                "skipRag": True,
+                "model": {"id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
+                "prompt": prompt,
+            },
+        }
     }
 
     # DEBUG: Show what model we're using
-    st.session_state.debug_model = payload["model"]
+    st.session_state.debug_model = payload["data"]["model"]
 
     try:
         with st.spinner('Analyzing document(s) and matching to inventory questions...'):
@@ -508,18 +517,35 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
                 st.session_state.debug_status = response.status_code
                 st.session_state.debug_response = str(response_data)[:500]
 
-                # OpenAI standard response parsing
-                content = response_data["choices"][0]["message"]["content"]
+                # Amplify API response parsing - try multiple formats
+                content = None
+                if isinstance(response_data, dict):
+                    if "data" in response_data:
+                        if isinstance(response_data["data"], dict) and "messages" in response_data["data"]:
+                            # If response is in messages array
+                            messages_list = response_data["data"]["messages"]
+                            if messages_list and len(messages_list) > 0:
+                                content = messages_list[-1].get("content", "")
+                        elif isinstance(response_data["data"], str):
+                            # If response is direct string in data
+                            content = response_data["data"]
+
+                    # Fallback - try to find any text content
+                    if not content:
+                        content = response_data.get("content", response_data.get("text", response_data.get("output", "")))
+
+                if not content:
+                    st.error("Could not find response content in API response")
+                    st.write("Debug - Response structure:", response_data)
+                    return ""
 
                 st.write(f"- Response length: {len(content)} characters")
-                st.write(f"- Model used: {response_data.get('model', 'unknown')}")
-                st.write(f"- Tokens used: {response_data.get('usage', {})}")
+                st.write(f"- Model used: {payload['data']['model']}")
 
                 # SAVE TO SESSION STATE
                 st.session_state.debug_llm_response = content
                 st.session_state.debug_response_length = len(content)
-                st.session_state.debug_model_used = response_data.get('model', 'unknown')
-                st.session_state.debug_tokens = response_data.get('usage', {})
+                st.session_state.debug_model_used = payload['data']['model']
 
                 # Show first 50 lines of response
                 st.write("📝 **First 50 lines of LLM response:**")
@@ -537,9 +563,8 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     except requests.exceptions.RequestException as e:
         st.error(f"An error occurred: {str(e)}")
         return None
-    except (KeyError, IndexError) as e:
-        st.error(f"Error parsing OpenAI response: {str(e)}")
-        st.error(f"Response data: {response_data}")
+    except Exception as e:
+        st.error(f"Error parsing Amplify response: {str(e)}")
         return None
 
 # UI Components
@@ -931,12 +956,12 @@ def reset_form():
 
 def make_llm_request_for_suggestions(prompt):
     """Make LLM request specifically for syllabus suggestions"""
-    url = "https://api.openai.com/v1/chat/completions"
+    url = "https://prod-api.vanderbilt.ai/chat"
 
     try:
-        API_KEY = st.secrets["OPENAI_API_KEY"]
+        API_KEY = st.secrets["AMPLIFY_API_KEY"]
     except KeyError:
-        st.error("OpenAI API key not found in secrets.")
+        st.error("Amplify API key not found in secrets.")
         return None
 
     headers = {
@@ -952,10 +977,19 @@ def make_llm_request_for_suggestions(prompt):
     ]
 
     payload = {
-        "model": "gpt-4o-mini",
-        "messages": messages,
-        "temperature": 0.7,  # Slightly higher temperature for more creative suggestions
-        "max_tokens": 4096
+        "data": {
+            "model": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "temperature": 0.7,  # Slightly higher temperature for more creative suggestions
+            "max_tokens": 4096,
+            "dataSources": [],
+            "messages": messages,
+            "options": {
+                "ragOnly": False,
+                "skipRag": True,
+                "model": {"id": "anthropic.claude-3-5-sonnet-20240620-v1:0"},
+                "prompt": prompt,
+            },
+        }
     }
 
     try:
@@ -964,15 +998,30 @@ def make_llm_request_for_suggestions(prompt):
 
             if response.status_code == 200:
                 response_data = response.json()
-                return response_data["choices"][0]["message"]["content"]
+
+                # Amplify API response parsing - try multiple formats
+                content = None
+                if isinstance(response_data, dict):
+                    if "data" in response_data:
+                        if isinstance(response_data["data"], dict) and "messages" in response_data["data"]:
+                            messages_list = response_data["data"]["messages"]
+                            if messages_list and len(messages_list) > 0:
+                                content = messages_list[-1].get("content", "")
+                        elif isinstance(response_data["data"], str):
+                            content = response_data["data"]
+
+                    if not content:
+                        content = response_data.get("content", response_data.get("text", response_data.get("output", "")))
+
+                return content if content else ""
             else:
                 st.error(f"Request failed with status code {response.status_code}")
                 return None
     except requests.exceptions.RequestException as e:
         st.error(f"An error occurred: {str(e)}")
         return None
-    except (KeyError, IndexError) as e:
-        st.error(f"Error parsing OpenAI response: {str(e)}")
+    except Exception as e:
+        st.error(f"Error parsing Amplify response: {str(e)}")
         return None
 
 def generate_syllabus_suggestions(answers):
