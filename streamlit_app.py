@@ -73,15 +73,15 @@ INVENTORY_QUESTIONS = {
 # Section Definitions
 SECTIONS = {
     "Section I: Course Details": ["Q1", "Q2", "Q3", "Q4"],
-    "Section II: Information Provided to Students": ["Q5", "Q6", "Q7", "Q8"],
-    "Section III: Supporting Materials": list(f"Q{i}" for i in range(9, 19)),  
-    "Section IV: In-Class Features": list(f"Q{i}" for i in range(19, 28)),    
-    "Section V: Assignments": list(f"Q{i}" for i in range(28, 33)),          
-    "Section VI: Feedback and Testing": list(f"Q{i}" for i in range(33, 39)), 
-    "Section VII: Other": list(f"Q{i}" for i in range(39, 44)),              
-    "Section VIII: Teaching Assistants": list(f"Q{i}" for i in range(44, 47)), 
-    "Section IX: Collaboration": list(f"Q{i}" for i in range(47, 52)),       
-    "Section X: Comments": ["Q52"]                                            
+    "Section II: Information Provided to Students": ["Q6", "Q7", "Q8"],
+    "Section III: Supporting Materials": ["Q9", "Q11", "Q12", "Q13", "Q14", "Q15", "Q16", "Q17", "Q18"],
+    "Section IV: In-Class Features": list(f"Q{i}" for i in range(19, 28)),
+    "Section V: Assignments": list(f"Q{i}" for i in range(28, 33)),
+    "Section VI: Feedback and Testing": list(f"Q{i}" for i in range(33, 39)),
+    "Section VII: Other": list(f"Q{i}" for i in range(39, 44)),
+    "Section VIII: Teaching Assistants": list(f"Q{i}" for i in range(45, 47)),
+    "Section IX: Collaboration": list(f"Q{i}" for i in range(47, 52)),
+    "Section X: Comments": ["Q52"]
 }
 # LLM Prompt Template
 INVENTORY_PROMPT = """
@@ -110,18 +110,6 @@ Q3 (Semester/Year):
 - Could say "Spring", "Fall" or "Summer" followed by a year
 - Check document names (e.g., "S2021", "F21")
 - Must have both semester and year explicitly stated
-
-Q5 (Topics List):
-Look in:
-- Course schedule/calendar sections
-- Course outline sections
-- Book chapter lists
-- Learning objectives
-Common formats:
-- Weekly schedules
-- Topic lists
-- Chapter headings
-- Course calendars
 
 Q6 (General Skills):
 Look for broad skills in:
@@ -155,12 +143,6 @@ Look for:
 - Required posting/responses
 - References to online participation
 - Mentions of posting/replying in participation sections
-
-Q10 (course website):
-Look for:
-- "Brightspace", "Canvas" etc.
-- "posted on" 
-- "course website"
 
 Q13 (practice tests)
 Look for:
@@ -215,15 +197,12 @@ Look for:
 - mention of "revision" or "revise"
 - feedback
 
-Q44 (TAs/LAs):
+Q45/Q46 (Teaching Assistants):
 Look for:
 - "Teaching assistants" sections
 - Lists of TA names/emails
 - Mentions of "TA" or "LA"
-- if you find no mention at all, set to "no"
-
-Q45/Q46
-If the answer to Q44 was "no" then the answer to both Q45 and Q46 should be "not applicable" and the evidence listed as "no for Q45"
+- If no TAs/LAs are mentioned, then both Q45 and Q46 should be "not applicable"
 
 IMPORTANT: Only provide answers with explicit evidence from the documents. Do not infer or guess.
 
@@ -290,7 +269,11 @@ def save_to_google_sheets(answers):
         row = []
         for i in range(1, 53):  # Updated to include Q52
             q_id = f"Q{i}"
-            row.append(answers.get(q_id, ""))
+            # Mark Q5, Q10, and Q44 as "notasked"
+            if q_id in ["Q5", "Q10", "Q44"]:
+                row.append("notasked")
+            else:
+                row.append(answers.get(q_id, ""))
             
         # Connect to Google Sheets
         gc = gspread.service_account_from_dict(credentials)
@@ -545,38 +528,17 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
 # UI Components
 def create_input_widget(question_id, question_info, current_value=None):
     format_type = question_info["format"]
-    
-    has_no_tas = st.session_state.all_answers.get("Q45") == "No"
-
-    if question_id == "Q44":
-        response = st.radio(
-            question_info["question"],
-            options=["No", "Yes"],
-            index=None if current_value is None else (0 if current_value == "No" else 1),
-            horizontal=True,
-            key=f"input_{question_id}"
-        )
-        if response == "No":
-            st.session_state.all_answers["Q45"] = "not applicable"
-            st.session_state.all_answers["Q46"] = "not applicable"
-        return response
 
     if question_id in ["Q45", "Q46"]:
         options = ["not applicable", "no", "yes"]
-        if has_no_tas:
-            value = "not applicable"
-        elif current_value is None:
-            value = None
-        else:
-            value = st.session_state.all_answers.get(question_id, current_value)
-        
+        value = current_value if current_value in options else None
+
         index = options.index(value) if value in options else None
         return st.radio(
             question_info["question"],
             options=options,
             index=index,
             key=f"input_{question_id}",
-            disabled=has_no_tas,
             horizontal=True
         )
 
@@ -789,11 +751,6 @@ def process_answer_text(question_id, answer_text):
     answer_text = answer_text.lower()
     
     try:
-        # Handle TA-dependent questions
-        if question_id in ["Q45", "Q46"] and 'all_answers' in st.session_state:
-            if st.session_state.all_answers.get("Q45") == "No":
-                return "not applicable"
-                
         if q_format == "y/n":
             # Extended yes/no detection
             yes_indicators = ['yes', 'does', 'do', 'provides', 'has', 'used', 'given', 'shown', 
@@ -1044,6 +1001,15 @@ def generate_syllabus_suggestions(answers):
 
 def main():
     st.set_page_config(layout="wide")
+
+    # VERSION INFO - Always visible
+    st.sidebar.write("# 📌 VERSION INFO")
+    st.sidebar.success("**Version 2.1** - Q5, Q10, and Q44 REMOVED")
+    st.sidebar.write("✓ Q5 (Topics List) - Not Asked")
+    st.sidebar.write("✓ Q10 (Course Website) - Not Asked")
+    st.sidebar.write("✓ Q44 (TAs/LAs) - Not Asked")
+    st.sidebar.write("These questions will show 'notasked' in Google Sheets")
+    st.sidebar.write("---")
 
     # Show persistent debug info in sidebar
     if 'debug_model' in st.session_state:
