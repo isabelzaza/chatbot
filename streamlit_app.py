@@ -702,6 +702,93 @@ def display_section(section_name, question_ids, current_answers):
     return section_answers, all_answered
 
 
+def visualize_time_allocation(answers):
+    """Visualize Q20, Q21, Q22 answers relative to last year's distribution"""
+    import plotly.graph_objects as go
+    import numpy as np
+
+    # Last year's data
+    last_year_data = {
+        "Q20": [30, 5, 25, 30, 20, 0, 5, 30, 0, 25, 5, 20, 0, 0, 25, 15, 0, 20],
+        "Q21": [50, 75, 60, 70, 70, 90, 50, 70, 25, 25, 10, 80, 25, 90, 75, 40, 100, 50],
+        "Q22": [20, 60, 15, 35, 25, 45, 0, 25, 30, 15, 30, 75, 30, 45, 17, 5, 15, 30]
+    }
+
+    question_labels = {
+        "Q20": "Group Work Time (%)",
+        "Q21": "Lecture Time (%)",
+        "Q22": "Max Continuous Lecture (minutes)"
+    }
+
+    st.markdown("---")
+    st.subheader("⏱️ Your Teaching Time Allocation")
+    st.write("See where your answers fall compared to last year's courses:")
+
+    for q_id in ["Q20", "Q21", "Q22"]:
+        # Get current answer
+        current_answer = answers.get(q_id)
+        if current_answer is None or current_answer == "":
+            continue
+
+        try:
+            current_value = float(current_answer)
+        except (ValueError, TypeError):
+            continue
+
+        # Get historical data
+        hist_data = last_year_data[q_id]
+
+        # Calculate percentile
+        percentile = np.percentile(hist_data, 50)  # median
+        below_count = sum(1 for x in hist_data if x < current_value)
+        percentile_rank = int((below_count / len(hist_data)) * 100)
+
+        # Create compact visualization
+        fig = go.Figure()
+
+        # Add histogram
+        fig.add_trace(go.Histogram(
+            x=hist_data,
+            nbinsx=10,
+            name="Last Year's Courses",
+            marker_color='lightblue',
+            opacity=0.7,
+            hovertemplate='%{x}<br>Count: %{y}<extra></extra>'
+        ))
+
+        # Add marker for current answer
+        fig.add_vline(
+            x=current_value,
+            line_dash="dash",
+            line_color="red",
+            line_width=3,
+            annotation_text=f"You: {current_value}",
+            annotation_position="top"
+        )
+
+        # Update layout for compact display
+        fig.update_layout(
+            title=f"{question_labels[q_id]}",
+            xaxis_title="Value",
+            yaxis_title="Number of Courses",
+            height=250,
+            margin=dict(l=40, r=40, t=60, b=40),
+            showlegend=False,
+            hovermode='x unified'
+        )
+
+        # Display chart and percentile info side by side
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.plotly_chart(fig, use_container_width=True)
+        with col2:
+            st.metric(
+                label="Your Position",
+                value=f"{percentile_rank}th percentile"
+            )
+            st.caption(f"Median: {percentile:.0f}")
+            st.caption(f"Your value: {current_value}")
+
 def compare_to_last_year(answers):
     """Compare instructor's answers to last year's distribution"""
     # Questions where "No" or "never" is uncommon (most instructors say "Yes")
@@ -822,8 +909,11 @@ def process_sections(analyzed_answers):
         if not missing_common and not using_rare:
             st.info("Your course practices align well with typical patterns from last year's courses.")
 
+        # Visualize time allocation (Q20, Q21, Q22)
+        visualize_time_allocation(st.session_state.all_answers)
+
         st.markdown("---")
-        
+
         suggestions_wanted = st.radio(
             "Would you like ideas on what could be added to your next syllabus for this course?",
             options=["Yes", "No"],
