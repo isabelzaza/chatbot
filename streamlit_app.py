@@ -16,6 +16,7 @@ INVENTORY_QUESTIONS = {
     "Q6": {"question": "Do you provide a list of general skills students should develop (like critical thinking)?", "format": "y/n"},
     "Q7": {"question": "Do you explain what specific skills students should learn from specific topics (e.g., from a given activity or lecture)?", "format": "y/n"},
     "Q8": {"question": "Do you articulate a policy regarding permissible use of AI tools/LLMs for this class, beyond saying all use of AI tools in assignments is banned?", "format": "y/n"},
+    "Q8A": {"question": "Do you spend any time teaching students how to use AI in this course?", "format": "y/n"},
     "Q9": {"question": "Do you use a platform for class discussions online?", "format": "y/n"},
     "Q10": {"question": "Do you use a course website like Brightspace to share materials?", "format": "y/n"},
     "Q11": {"question": "Do you provide solutions to homework assignments?", "format": "y/n"},
@@ -42,6 +43,8 @@ INVENTORY_QUESTIONS = {
     "Q28": {"question": "Do you give homework or practice problems that do not count towards grade?", "format": "y/n"},
     "Q29": {"question": "Do you give homework or problems that count towards grade?", "format": "y/n"},
     "Q30": {"question": "Do you assign a project or paper where students have some choice about the topic?", "format": "y/n"},
+    "Q30A": {"question": "If you use a programming language, state which one – otherwise put NA", "format": "text"},
+    "Q30B": {"question": "If students create something in this course, outside of a paper, say what it is – otherwise put NA", "format": "text"},
     "Q31": {"question": "Do you encourage students to work together on individual assignments?", "format": "y/n"},
     "Q32": {"question": "Do you give group assignments?", "format": "y/n"},
     "Q33": {"question": "Do you ask students for anonymous feedback outside of end of term course reviews", "format": "y/n"},
@@ -73,10 +76,10 @@ INVENTORY_QUESTIONS = {
 # Section Definitions - Balanced sections with 6-7 questions each
 SECTIONS = {
     "Section 1": ["Q1", "Q2", "Q3", "Q4", "Q6", "Q7"],
-    "Section 2": ["Q8", "Q9", "Q11", "Q12", "Q13", "Q14"],
+    "Section 2": ["Q8", "Q8A", "Q9", "Q11", "Q12", "Q13", "Q14"],
     "Section 3": ["Q15", "Q16", "Q17", "Q18", "Q19", "Q20"],
     "Section 4": ["Q21", "Q22", "Q23", "Q24", "Q25", "Q26"],
-    "Section 5": ["Q27", "Q28", "Q29", "Q30", "Q31", "Q32"],
+    "Section 5": ["Q27", "Q28", "Q29", "Q30", "Q30A", "Q30B", "Q31", "Q32"],
     "Section 6": ["Q33", "Q34", "Q35", "Q36", "Q37", "Q38"],
     "Section 7": ["Q39", "Q40", "Q41", "Q42", "Q43", "Q45"],
     "Section 8": ["Q46", "Q47", "Q48", "Q49", "Q50", "Q51", "Q52"]
@@ -133,6 +136,14 @@ Look for
 - "Generative AI"
 - "LLM" or "Large language models"
 
+Q8A (Teaching AI Use):
+Look for evidence that instructor teaches students HOW to use AI:
+- "Teaching students to use AI"
+- "AI training" or "AI instruction"
+- "How to use ChatGPT" or similar tools
+- Workshops or lessons on AI use
+- If only mentions a policy but no teaching, answer is "No"
+
 Q9 (Online Discussions):
 Look for:
 - Discussion board (likely on Brightspace)
@@ -180,6 +191,22 @@ Check if points/grades assigned
 Q30 (Project with options):
 Look for:
 -discussion of a project or assignment, with "option(s)" or "choice(s)"
+
+Q30A (Programming Language):
+Look for mentions of:
+- Programming languages (Python, R, Java, C++, JavaScript, MATLAB, etc.)
+- "using Python" or "coding in..."
+- Software or programming requirements
+- If no programming language mentioned, answer should be "NA"
+
+Q30B (Student Creation):
+Look for what students create BESIDES papers:
+- Projects, models, prototypes, apps, websites
+- Presentations, posters, videos
+- Simulations, experiments, designs
+- Artworks, performances, portfolios
+- DO NOT include regular written papers/essays
+- If only papers/exams mentioned, answer should be "NA"
 
 Q32 (Team work):
 Look for:
@@ -267,9 +294,13 @@ def save_to_google_sheets(answers):
         row = []
         for i in range(1, 53):  # Updated to include Q52
             q_id = f"Q{i}"
-            # Mark Q5, Q10, and Q44 as "notasked"
-            if q_id in ["Q5", "Q10", "Q44"]:
-                row.append("notasked")
+            # Map new questions to old positions
+            if q_id == "Q5":
+                row.append(answers.get("Q8A", ""))  # AI teaching question
+            elif q_id == "Q10":
+                row.append(answers.get("Q30A", ""))  # Programming language question
+            elif q_id == "Q44":
+                row.append(answers.get("Q30B", ""))  # Student creation question
             else:
                 row.append(answers.get(q_id, ""))
             
@@ -1039,12 +1070,13 @@ def main():
 
     # VERSION INFO - Always visible
     st.sidebar.write("# 📌 VERSION INFO")
-    st.sidebar.success("**Version 2.5** - SECTIONS REBALANCED")
-    st.sidebar.write("✓ Q5, Q10, Q44 - Not Asked (show 'notasked')")
-    st.sidebar.write("✓ Q38 - Changed to frequency choice")
-    st.sidebar.write("✓ Only pre-fill if VALID evidence found")
-    st.sidebar.write("✓ 8 balanced sections (6-7 questions each)")
-    st.sidebar.write("✓ Questions kept in original order")
+    st.sidebar.success("**Version 3.1** - NEW QUESTIONS + EXTRACTION")
+    st.sidebar.write("✓ Q8A: AI teaching (→ col 5) + extraction")
+    st.sidebar.write("✓ Q30A: Programming (→ col 10) + extraction")
+    st.sidebar.write("✓ Q30B: Student creation (→ col 44) + extraction")
+    st.sidebar.write("✓ LLM prompt updated for new questions")
+    st.sidebar.write("✓ 8 balanced sections")
+    st.sidebar.write("✓ Only pre-fill with valid evidence")
     st.sidebar.write("---")
 
     # Show persistent debug info in sidebar
