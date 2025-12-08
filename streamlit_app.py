@@ -702,6 +702,63 @@ def display_section(section_name, question_ids, current_answers):
     return section_answers, all_answered
 
 
+def compare_to_last_year(answers):
+    """Compare instructor's answers to last year's distribution"""
+    # Questions where "No" or "never" is uncommon (most instructors say "Yes")
+    common_practices = {
+        "Q5": {"percent": 83, "question": INVENTORY_QUESTIONS.get("Q5", {}).get("question", "Q5")},
+        "Q6": {"percent": 89, "question": INVENTORY_QUESTIONS["Q6"]["question"]},
+        "Q7": {"percent": 78, "question": INVENTORY_QUESTIONS["Q7"]["question"]},
+        "Q8": {"percent": 89, "question": INVENTORY_QUESTIONS["Q8"]["question"]},
+        "Q14": {"percent": 94, "question": INVENTORY_QUESTIONS["Q14"]["question"]},
+        "Q29": {"percent": 83, "question": INVENTORY_QUESTIONS["Q29"]["question"]},
+        "Q41": {"percent": 83, "question": INVENTORY_QUESTIONS["Q41"]["question"]},
+        "Q49": {"percent": 83, "question": INVENTORY_QUESTIONS["Q49"]["question"]},
+    }
+
+    # Questions where "Yes" or positive response is uncommon (rare practices)
+    rare_practices = {
+        "Q9": {"percent": 28, "question": INVENTORY_QUESTIONS["Q9"]["question"]},
+        "Q37": {"percent": 39, "question": INVENTORY_QUESTIONS["Q37"]["question"]},
+        "Q11": {"percent": 28, "question": INVENTORY_QUESTIONS["Q11"]["question"]},
+        "Q12": {"percent": 33, "question": INVENTORY_QUESTIONS["Q12"]["question"]},
+        "Q26": {"percent": 39, "question": INVENTORY_QUESTIONS["Q26"]["question"]},
+        "Q27": {"percent": 22, "question": INVENTORY_QUESTIONS["Q27"]["question"]},
+        "Q40": {"percent": 6, "question": INVENTORY_QUESTIONS["Q40"]["question"]},
+    }
+
+    missing_common = []
+    using_rare = []
+
+    # Check for missing common practices
+    for q_id, data in common_practices.items():
+        answer = answers.get(q_id, "").lower()
+        if answer in ["no", "never"]:
+            missing_common.append({
+                "question": data["question"],
+                "percent": data["percent"]
+            })
+
+    # Check for rare practices being used
+    for q_id, data in rare_practices.items():
+        answer = answers.get(q_id, "")
+        # Check for "Yes" or positive responses beyond "rarely"
+        is_positive = False
+        if isinstance(answer, str):
+            answer_lower = answer.lower()
+            if answer_lower == "yes":
+                is_positive = True
+            elif answer_lower in ["once in a while", "every week", "every class", "sometimes", "often"]:
+                is_positive = True
+
+        if is_positive:
+            using_rare.append({
+                "question": data["question"],
+                "percent": data["percent"]
+            })
+
+    return missing_common, using_rare
+
 def process_sections(analyzed_answers):
     """Process each section of questions sequentially"""
     # Initialize session state variables
@@ -721,7 +778,7 @@ def process_sections(analyzed_answers):
     if st.session_state.completed:
         st.title("Thank you for completing the inventory!")
         st.success("Your responses have been successfully uploaded to our database.")
-        
+
         # Optional comments section
         # st.markdown("---")
         # comments = st.text_area(
@@ -729,7 +786,7 @@ def process_sections(analyzed_answers):
         #     height=150,
         #     key="optional_comments"
         # )
-        
+
         # Update answers with comments if provided
         # if comments:
         #     st.session_state.all_answers["Q53"] = comments
@@ -737,7 +794,34 @@ def process_sections(analyzed_answers):
         #     if not st.session_state.saved_to_sheets:
         #         save_to_google_sheets(st.session_state.all_answers)
         #         st.session_state.saved_to_sheets = True
-        
+
+        st.markdown("---")
+
+        # Compare to last year's distribution
+        st.subheader("📊 How does this course compare to last year's courses?")
+        missing_common, using_rare = compare_to_last_year(st.session_state.all_answers)
+
+        if missing_common:
+            st.markdown("#### Practices commonly used in other courses:")
+            st.info("The following practices were used by most instructors last year, but you answered 'No' or 'Never' to these questions:")
+            for item in missing_common:
+                st.markdown(f"- **{item['question']}**")
+                st.markdown(f"  - Last year, instructors answered yes to this question for **{item['percent']}%** of courses")
+            st.markdown("*Each course is different, but it may be worth considering whether these practices could be used in this course, and note that students may expect them.*")
+            st.markdown("")
+
+        if using_rare:
+            st.markdown("#### Innovative practices you're using:")
+            st.success("Great! This course implements some relatively rare evidence-based approaches:")
+            for item in using_rare:
+                st.markdown(f"- **{item['question']}**")
+                st.markdown(f"  - Last year, few courses - **{item['percent']}%** - used this strategy")
+            st.markdown("*Each course is different, but it seems like this course implements some relatively rare evidence-based approaches. That's great! Note that students may not be used to them and it may be good to make sure that you spend time explaining them to students, to get good buy-in.*")
+            st.markdown("")
+
+        if not missing_common and not using_rare:
+            st.info("Your course practices align well with typical patterns from last year's courses.")
+
         st.markdown("---")
         
         suggestions_wanted = st.radio(
@@ -1070,11 +1154,11 @@ def main():
 
     # VERSION INFO - Always visible
     st.sidebar.write("# 📌 VERSION INFO")
-    st.sidebar.success("**Version 3.1** - NEW QUESTIONS + EXTRACTION")
-    st.sidebar.write("✓ Q8A: AI teaching (→ col 5) + extraction")
-    st.sidebar.write("✓ Q30A: Programming (→ col 10) + extraction")
-    st.sidebar.write("✓ Q30B: Student creation (→ col 44) + extraction")
-    st.sidebar.write("✓ LLM prompt updated for new questions")
+    st.sidebar.success("**Version 3.2** - COMPARISON TO LAST YEAR")
+    st.sidebar.write("✓ Compare answers to last year's distribution")
+    st.sidebar.write("✓ Show missing common practices")
+    st.sidebar.write("✓ Highlight rare innovative practices")
+    st.sidebar.write("✓ 3 new questions (Q8A, Q30A, Q30B)")
     st.sidebar.write("✓ 8 balanced sections")
     st.sidebar.write("✓ Only pre-fill with valid evidence")
     st.sidebar.write("---")
