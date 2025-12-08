@@ -14,7 +14,7 @@ INVENTORY_QUESTIONS = {
     "Q4": {"question": "Number of Students", "format": "number"},
     "Q5": {"question": "Do you give students a list of the topics that will be covered in the course?", "format": "y/n"},
     "Q6": {"question": "Do you provide a list of general skills students should develop (like critical thinking)?", "format": "y/n"},
-    "Q7": {"question": "Do you explain how what specific skills students should learn from specific topics (e.g., from a given activity or lecture)?", "format": "y/n"},
+    "Q7": {"question": "Do you explain what specific skills students should learn from specific topics (e.g., from a given activity or lecture)?", "format": "y/n"},
     "Q8": {"question": "Do you articulate a policy regarding permissible use of AI tools/LLMs for this class, beyond saying all use of AI tools in assignments is banned?", "format": "y/n"},
     "Q9": {"question": "Do you use a platform for class discussions online?", "format": "y/n"},
     "Q10": {"question": "Do you use a course website like Brightspace to share materials?", "format": "y/n"},
@@ -49,7 +49,7 @@ INVENTORY_QUESTIONS = {
     "Q35": {"question": "Do students have access to their graded exams and other assignments?", "format": "y/n"},
     "Q36": {"question": "Do you share answer keys for graded exams and other assignments?", "format": "y/n"},
     "Q37": {"question": "Do you require students to include a statement regarding their use of AI tools/LLMs on submitted assignments, or submit some kind of record to delineate which parts of the assignment represent their own intellectual contributions versus those of generative AI?", "format": "y/n"},
-    "Q38": {"question": "Do you encourage students to meet with you to discuss their progress?", "format": "y/n"},
+    "Q38": {"question": "How often do you have students consult with you outside of class?", "format": "choice: never/rarely/once a week/several times a week"},
     "Q39": {"question": "Do you give a test at the beginning of the course to see what students already know?", "format": "y/n"},
     "Q40": {"question": "Do you use a pre-and-post test to measure how much students learn in the course?", "format": "y/n"},
     "Q41": {"question": "Do you ask students about their interest or feelings about the subject before and after the course?", "format": "y/n"},
@@ -596,10 +596,18 @@ def display_section(section_name, question_ids, current_answers):
         for q_id in question_ids:
             question_info = INVENTORY_QUESTIONS[q_id]
             current_value = current_answers.get(q_id)
-            
+
+            # Only use current_value if there's evidence for it
+            if 'evidence' not in st.session_state:
+                st.session_state.evidence = {}
+
+            # If there's a current value but no evidence, don't pre-fill
+            if current_value and q_id not in st.session_state.evidence:
+                current_value = None
+
             # Use consistent column layout for all questions
             cols = st.columns([3, 1, 1])
-            
+
             # Question and input widget
             with cols[0]:
                 print(q_id)
@@ -1004,10 +1012,12 @@ def main():
 
     # VERSION INFO - Always visible
     st.sidebar.write("# 📌 VERSION INFO")
-    st.sidebar.success("**Version 2.1** - Q5, Q10, and Q44 REMOVED")
+    st.sidebar.success("**Version 2.3** - Q5, Q10, Q44 REMOVED | Q38 UPDATED")
     st.sidebar.write("✓ Q5 (Topics List) - Not Asked")
     st.sidebar.write("✓ Q10 (Course Website) - Not Asked")
     st.sidebar.write("✓ Q44 (TAs/LAs) - Not Asked")
+    st.sidebar.write("✓ Q38 - Changed to frequency choice")
+    st.sidebar.write("✓ Only pre-fill if evidence found")
     st.sidebar.write("These questions will show 'notasked' in Google Sheets")
     st.sidebar.write("---")
 
