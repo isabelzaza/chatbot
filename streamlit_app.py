@@ -782,10 +782,8 @@ def visualize_time_allocation(answers):
         with col1:
             st.plotly_chart(fig, use_container_width=True)
         with col2:
-            st.metric(
-                label="Your Position",
-                value=f"{percentile_rank}th percentile"
-            )
+            st.write("**Your Position**")
+            st.write(f"{percentile_rank}th percentile")
             st.caption(f"Median: {percentile:.0f}")
             st.caption(f"Your value: {current_value}")
 
@@ -915,21 +913,31 @@ def process_sections(analyzed_answers):
         st.markdown("---")
 
         suggestions_wanted = st.radio(
-            "Would you like ideas on what could be added to your next syllabus for this course?",
+            "Would you like to see what practices might need clarification in your syllabus?",
             options=["Yes", "No"],
             index=None,
             horizontal=True,
             key="suggestions_radio"
         )
-        
+
         if suggestions_wanted == "Yes":
-            suggestions = generate_syllabus_suggestions(st.session_state.all_answers)
-            if suggestions:
-                st.markdown("### Notes for future syllabus development, based on information you provided but was not in your syllabus")
-                st.markdown(suggestions)
-                st.info("You can copy these notes for future use when developing your syllabus.")
-        # elif suggestions_wanted == "No":
-        st.success("Thank you for participating! You may now close this browser - you results are already saved.")
+            missing_items = identify_missing_syllabus_items(st.session_state.all_answers)
+
+            if missing_items:
+                st.markdown("### Notes for future syllabus development")
+                st.info("You may want to clarify the following practices in your syllabus. You mentioned using these, but I could not find them explicitly discussed in your syllabus:")
+
+                for category, items in missing_items.items():
+                    st.markdown(f"**{category}**")
+                    for item in items:
+                        st.markdown(item)
+                    st.markdown("")  # Add spacing between categories
+
+                st.caption("💡 Adding these details to your syllabus can help students understand course expectations and available resources.")
+            else:
+                st.success("Great! All the practices you mentioned using appear to be clearly documented in your syllabus.")
+
+        st.success("Thank you for participating! You may now close this browser - your results are already saved.")
         
         return
     
@@ -1126,116 +1134,62 @@ def reset_form():
         if key in st.session_state:
             del st.session_state[key]
 
-def make_llm_request_for_suggestions(prompt):
-    """Make LLM request specifically for syllabus suggestions"""
-    url = "https://api.openai.com/v1/chat/completions"
+def identify_missing_syllabus_items(answers):
+    """Identify practices that are used but not clearly documented in the syllabus"""
 
-    try:
-        API_KEY = st.secrets["OPENAI_API_KEY"]
-    except KeyError:
-        st.error("OpenAI API key not found in secrets.")
-        return None
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {API_KEY}"
+    # Categories of questions that should be in syllabus
+    categories = {
+        "Course Structure and Learning Objectives": ["Q6", "Q7"],
+        "Technology and AI Policies": ["Q8", "Q8A", "Q9", "Q10"],
+        "Course Materials and Resources": ["Q11", "Q12", "Q13", "Q14", "Q15", "Q16", "Q17", "Q18"],
+        "Assignments and Assessment": ["Q26", "Q27", "Q28", "Q29", "Q30", "Q30A", "Q30B", "Q31", "Q32"],
+        "Feedback and Grading Policies": ["Q33", "Q34", "Q35", "Q36", "Q37", "Q38"]
     }
 
-    messages = [
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
+    # Get evidence from session state
+    evidence = st.session_state.get('evidence', {})
 
-    payload = {
-        "model": "gpt-4o-mini",
-        "messages": messages,
-        "temperature": 0.7,  # Slightly higher temperature for more creative suggestions
-        "max_tokens": 4096
-    }
+    # Collect missing items by category
+    missing_by_category = {}
 
-    try:
-        with st.spinner('Generating syllabus suggestions...'):
-            response = requests.post(url, headers=headers, data=json.dumps(payload))
+    for category, question_ids in categories.items():
+        missing_items = []
 
-            if response.status_code == 200:
-                response_data = response.json()
-                return response_data["choices"][0]["message"]["content"]
-            else:
-                st.error(f"Request failed with status code {response.status_code}")
-                return None
-    except requests.exceptions.RequestException as e:
-        st.error(f"An error occurred: {str(e)}")
-        return None
-    except (KeyError, IndexError) as e:
-        st.error(f"Error parsing OpenAI response: {str(e)}")
-        return None
+        for q_id in question_ids:
+            answer = answers.get(q_id)
+            if not answer:
+                continue
 
-def generate_syllabus_suggestions(answers):
-    """Generate suggestions for syllabus improvements based on inventory answers"""
-    
-    # Questions to skip (not typically in syllabus or practice-based)
-    SKIP_QUESTIONS = set([f"Q{i}" for i in range(1, 5)] +  # Basic info
-                        [f"Q{i}" for i in range(19, 25)] +  # In-class practices
-                        ["Q33"] +  # Feedback practices
-                        [f"Q{i}" for i in range(44, 52)])  # TA and collaboration info
-    
-    # Create prompt for LLM
-    prompt = """You are an expert in the best practices for syllabus development in higher education.
-    Based on these teaching inventory answers, provide sample syllabus text that is clear, 
-    direct, and student-friendly. For each section:
-    1. Provide ready-to-use syllabus language in plain English (avoid jargon and words like "utilize")
-    2. Add brief notes about what specific details could be added that you do not have
-    
-    Organize the suggestions into these syllabus sections:
-    - Course Materials and Resources
-    - Learning Objectives and Outcomes
-    - Course Policies (including AI/LLM policies)
-    - Assignments and Assessments
-    - Student Support and Resources
-    - Course Communication
-    
-    Format your response as:
-    [Section Name]
-    
-    [Sample syllabus text]
-    
-    Notes: [What specific information should be added]
-    
-    ---
-    
-    Current Teaching Practices (based on inventory answers):
-    """
-    
-    # Add relevant answers to prompt
-    suggestions_needed = []
-    for q_id, answer in answers.items():
-        if q_id not in SKIP_QUESTIONS and answer:  # Only include questions with answers
-            question_text = INVENTORY_QUESTIONS[q_id]["question"]
-            if answer == "Yes":
-                suggestions_needed.append(f"✓ {question_text}")
-            elif answer == "No":
-                suggestions_needed.append(f"○ {question_text}")
-            else:
-                suggestions_needed.append(f"• {question_text}: {answer}")
-    
-    prompt += "\n".join(suggestions_needed)
-    
-    # Add specific guidance for the response
-    prompt += """
+            # Check if this practice is being used
+            is_using_practice = False
 
-    For your response:
-    1. Write in clear, simple language that students will easily understand
-    2. Avoid academic jargon and complex terminology
-    3. Focus on what will be done in the course
-    4. Include notes about specific details the instructor should add
-    5. Present the text exactly as it could appear in a syllabus
-    6. Don't suggest anything about "Contact information" or "Student Support and Resources"
-    
-    Do not include explanations - only provide the sample syllabus text and notes for customization."""
+            q_format = INVENTORY_QUESTIONS[q_id]["format"]
 
-    return make_llm_request_for_suggestions(prompt)
+            if q_format == "y/n":
+                is_using_practice = (answer == "Yes")
+            elif q_format.startswith("choice:"):
+                # For choice questions, anything except "never" or "not applicable"
+                if answer not in ["never", "not applicable"]:
+                    is_using_practice = True
+            elif q_format in ["text", "percentage (0 to 100)", "number (minutes)", "number"]:
+                # For text/number questions, if they provided an answer (not NA/empty)
+                if answer and answer.strip() and answer.strip().upper() != "NA":
+                    is_using_practice = True
+
+            # If using the practice, check if evidence exists
+            if is_using_practice:
+                has_valid_evidence = (q_id in evidence and is_valid_evidence(evidence[q_id]))
+
+                if not has_valid_evidence:
+                    # Add to missing items
+                    question_text = INVENTORY_QUESTIONS[q_id]["question"]
+                    missing_items.append(f"• {question_text}")
+
+        # Only add category if it has missing items
+        if missing_items:
+            missing_by_category[category] = missing_items
+
+    return missing_by_category
     
 
 
