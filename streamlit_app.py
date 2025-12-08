@@ -70,18 +70,16 @@ INVENTORY_QUESTIONS = {
             "format": "text"}
 }
 
-# Section Definitions
+# Section Definitions - Balanced sections with 6-7 questions each
 SECTIONS = {
-    "Section I: Course Details": ["Q1", "Q2", "Q3", "Q4"],
-    "Section II: Information Provided to Students": ["Q6", "Q7", "Q8"],
-    "Section III: Supporting Materials": ["Q9", "Q11", "Q12", "Q13", "Q14", "Q15", "Q16", "Q17", "Q18"],
-    "Section IV: In-Class Features": list(f"Q{i}" for i in range(19, 28)),
-    "Section V: Assignments": list(f"Q{i}" for i in range(28, 33)),
-    "Section VI: Feedback and Testing": list(f"Q{i}" for i in range(33, 39)),
-    "Section VII: Other": list(f"Q{i}" for i in range(39, 44)),
-    "Section VIII: Teaching Assistants": list(f"Q{i}" for i in range(45, 47)),
-    "Section IX: Collaboration": list(f"Q{i}" for i in range(47, 52)),
-    "Section X: Comments": ["Q52"]
+    "Section 1": ["Q1", "Q2", "Q3", "Q4", "Q6", "Q7"],
+    "Section 2": ["Q8", "Q9", "Q11", "Q12", "Q13", "Q14"],
+    "Section 3": ["Q15", "Q16", "Q17", "Q18", "Q19", "Q20"],
+    "Section 4": ["Q21", "Q22", "Q23", "Q24", "Q25", "Q26"],
+    "Section 5": ["Q27", "Q28", "Q29", "Q30", "Q31", "Q32"],
+    "Section 6": ["Q33", "Q34", "Q35", "Q36", "Q37", "Q38"],
+    "Section 7": ["Q39", "Q40", "Q41", "Q42", "Q43", "Q45"],
+    "Section 8": ["Q46", "Q47", "Q48", "Q49", "Q50", "Q51", "Q52"]
 }
 # LLM Prompt Template
 INVENTORY_PROMPT = """
@@ -582,27 +580,54 @@ def create_input_widget(question_id, question_info, current_value=None):
             key=f"input_{question_id}"
         )
 
+def is_valid_evidence(evidence_text):
+    """Check if evidence is actually valid or just the LLM saying 'not found'"""
+    if not evidence_text:
+        return False
+
+    # Phrases that indicate the LLM couldn't find information
+    invalid_phrases = [
+        "not applicable",
+        "no mention",
+        "not found",
+        "no information",
+        "could not find",
+        "couldn't find",
+        "no evidence",
+        "not stated",
+        "not specified",
+        "does not mention",
+        "doesn't mention"
+    ]
+
+    evidence_lower = evidence_text.lower()
+    return not any(phrase in evidence_lower for phrase in invalid_phrases)
+
 def display_section(section_name, question_ids, current_answers):
     """Display a section of questions with appropriate input widgets"""
     st.subheader(section_name)
-    
+
     section_answers = {}
     all_answered = True
-    
+
     # Create a container for this section
     section_container = st.container()
-    
+
     with section_container:
         for q_id in question_ids:
             question_info = INVENTORY_QUESTIONS[q_id]
             current_value = current_answers.get(q_id)
 
-            # Only use current_value if there's evidence for it
+            # Only use current_value if there's valid evidence for it
             if 'evidence' not in st.session_state:
                 st.session_state.evidence = {}
 
-            # If there's a current value but no evidence, don't pre-fill
-            if current_value and q_id not in st.session_state.evidence:
+            # Check if evidence exists AND is valid (not just "no mention found")
+            has_valid_evidence = (q_id in st.session_state.evidence and
+                                 is_valid_evidence(st.session_state.evidence.get(q_id)))
+
+            # If there's a current value but no valid evidence, don't pre-fill
+            if current_value and not has_valid_evidence:
                 current_value = None
 
             # Use consistent column layout for all questions
@@ -631,13 +656,15 @@ def display_section(section_name, question_ids, current_answers):
             with cols[2]:
                 if 'evidence' not in st.session_state:
                     st.session_state.evidence = {}
-                
+
                 with st.expander("Why I selected this?"):
-                    if q_id in st.session_state.evidence and st.session_state.evidence[q_id]:
+                    evidence_text = st.session_state.evidence.get(q_id, "")
+                    if evidence_text and is_valid_evidence(evidence_text):
                         st.markdown("*Based on this text from your document:*")
-                        st.write(st.session_state.evidence[q_id])
-                    elif current_value:
-                        st.write("Pre-filled from document analysis, but specific quote not captured.")
+                        st.write(evidence_text)
+                    elif evidence_text and not is_valid_evidence(evidence_text):
+                        st.write("LLM couldn't find relevant information in the document.")
+                        st.caption(f"_LLM response: {evidence_text}_")
                     else:
                         st.write("No automated analysis available for this question.")
     
@@ -1012,13 +1039,12 @@ def main():
 
     # VERSION INFO - Always visible
     st.sidebar.write("# 📌 VERSION INFO")
-    st.sidebar.success("**Version 2.3** - Q5, Q10, Q44 REMOVED | Q38 UPDATED")
-    st.sidebar.write("✓ Q5 (Topics List) - Not Asked")
-    st.sidebar.write("✓ Q10 (Course Website) - Not Asked")
-    st.sidebar.write("✓ Q44 (TAs/LAs) - Not Asked")
+    st.sidebar.success("**Version 2.5** - SECTIONS REBALANCED")
+    st.sidebar.write("✓ Q5, Q10, Q44 - Not Asked (show 'notasked')")
     st.sidebar.write("✓ Q38 - Changed to frequency choice")
-    st.sidebar.write("✓ Only pre-fill if evidence found")
-    st.sidebar.write("These questions will show 'notasked' in Google Sheets")
+    st.sidebar.write("✓ Only pre-fill if VALID evidence found")
+    st.sidebar.write("✓ 8 balanced sections (6-7 questions each)")
+    st.sidebar.write("✓ Questions kept in original order")
     st.sidebar.write("---")
 
     # Show persistent debug info in sidebar
