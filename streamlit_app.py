@@ -1227,16 +1227,17 @@ def identify_missing_syllabus_items(answers):
 def main():
     st.set_page_config(layout="wide")
 
-    # VERSION INFO - Always visible
-    st.sidebar.write("# 📌 VERSION INFO")
-    st.sidebar.success("**Version 3.2** - COMPARISON TO LAST YEAR")
-    st.sidebar.write("✓ Compare answers to last year's distribution")
-    st.sidebar.write("✓ Show missing common practices")
-    st.sidebar.write("✓ Highlight rare innovative practices")
-    st.sidebar.write("✓ 3 new questions (Q8A, Q30A, Q30B)")
-    st.sidebar.write("✓ 8 balanced sections")
-    st.sidebar.write("✓ Only pre-fill with valid evidence")
-    st.sidebar.write("---")
+    # VERSION INFO - Only visible when DEBUG is on
+    if SHOW_DEBUG:
+        st.sidebar.write("# 📌 VERSION INFO")
+        st.sidebar.success("**Version 3.2** - COMPARISON TO LAST YEAR")
+        st.sidebar.write("✓ Compare answers to last year's distribution")
+        st.sidebar.write("✓ Show missing common practices")
+        st.sidebar.write("✓ Highlight rare innovative practices")
+        st.sidebar.write("✓ 3 new questions (Q8A, Q30A, Q30B)")
+        st.sidebar.write("✓ 8 balanced sections")
+        st.sidebar.write("✓ Only pre-fill with valid evidence")
+        st.sidebar.write("---")
 
     # Show persistent debug info in sidebar
     if SHOW_DEBUG and 'debug_model' in st.session_state:
@@ -1300,7 +1301,7 @@ def main():
         in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions manually. 
         At the end, we will provide you with suggestions for information to add to your syllabus.
                  
-        This app uses Generative AI              
+        This app uses Generative AI on OPEN AI. Do not upload anything you do not consider public content.              
         """)
 
         
