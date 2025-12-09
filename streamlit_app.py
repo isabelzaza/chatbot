@@ -1209,7 +1209,7 @@ def main():
 
             if VANDERBILT_API_KEY:
                 headers = {
-                    "Authorization": f"Bearer {VANDERBILT_API_KEY}"
+                    "X-API-Key": VANDERBILT_API_KEY
                 }
                 models_response = requests.get(
                     "https://prod-api.vanderbilt.ai/available_models",
