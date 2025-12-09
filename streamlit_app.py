@@ -1199,13 +1199,28 @@ def main():
     # Fetch available models from Vanderbilt AI API
     if 'available_models' not in st.session_state:
         try:
-            models_response = requests.get("https://prod-api.vanderbilt.ai/available_models")
-            if models_response.status_code == 200:
-                st.session_state.available_models = models_response.json()
-                st.session_state.models_status = "Success"
-            else:
-                st.session_state.available_models = f"Error: Status {models_response.status_code}"
-                st.session_state.models_status = f"Failed ({models_response.status_code})"
+            # Get API key from secrets
+            try:
+                VANDERBILT_API_KEY = st.secrets["VANDERBILT_API_KEY"]
+            except KeyError:
+                st.session_state.available_models = "Error: VANDERBILT_API_KEY not found in secrets"
+                st.session_state.models_status = "Missing API Key"
+                VANDERBILT_API_KEY = None
+
+            if VANDERBILT_API_KEY:
+                headers = {
+                    "Authorization": f"Bearer {VANDERBILT_API_KEY}"
+                }
+                models_response = requests.get(
+                    "https://prod-api.vanderbilt.ai/available_models",
+                    headers=headers
+                )
+                if models_response.status_code == 200:
+                    st.session_state.available_models = models_response.json()
+                    st.session_state.models_status = "Success"
+                else:
+                    st.session_state.available_models = f"Error: Status {models_response.status_code} - {models_response.text}"
+                    st.session_state.models_status = f"Failed ({models_response.status_code})"
         except Exception as e:
             st.session_state.available_models = f"Error: {str(e)}"
             st.session_state.models_status = "Failed"
