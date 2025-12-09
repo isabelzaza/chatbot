@@ -512,7 +512,7 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
 
     payload = {
         "data": {
-            "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+            "model": "gpt-4o-mini",
             "temperature": 0.3,
             "max_tokens": 4096,
             "dataSources": [],
@@ -520,7 +520,7 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
             "options": {
                 "ragOnly": False,
                 "skipRag": True,
-                "model": {"id": "us.anthropic.claude-sonnet-4-5-20250929-v1:0"},
+                "model": {"id": "gpt-4o-mini"},
                 "prompt": prompt,
             },
         }
@@ -1262,7 +1262,7 @@ def main():
     if SHOW_DEBUG:
         st.sidebar.write("# 📌 VERSION INFO")
         st.sidebar.success("**Version 3.2 - AMPLIFY**")
-        st.sidebar.info("**Using Claude Sonnet 4.5 via Vanderbilt Amplify**")
+        st.sidebar.info("**Using GPT-4o-mini via Vanderbilt Amplify**")
         st.sidebar.write("✓ Compare answers to last year's distribution")
         st.sidebar.write("✓ Show missing common practices")
         st.sidebar.write("✓ Highlight rare innovative practices")
@@ -1333,7 +1333,7 @@ def main():
         in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions manually. 
         At the end, we will provide you with suggestions for information to add to your syllabus.
                  
-        This app uses Generative AI (Claude Sonnet 4.5 via Vanderbilt Amplify). Do not upload anything you do not consider public content.              
+        This app uses Generative AI (GPT-4o-mini via Vanderbilt Amplify). Do not upload anything you do not consider public content.              
         """)
 
         
