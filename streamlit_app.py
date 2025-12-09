@@ -453,17 +453,17 @@ def parse_llm_response(response_text):
 # LLM Request Function
 def make_llm_request(file_content1, filename1, file_content2=None, filename2=None):
     """Make LLM request with support for one or two documents"""
-    url = "https://prod-api.vanderbilt.ai/chat"
+    url = "https://api.openai.com/v1/chat/completions"
 
     try:
-        API_KEY = st.secrets["VANDERBILT_API_KEY"]
+        API_KEY = st.secrets["OPENAI_API_KEY"]
     except KeyError:
-        st.error("Vanderbilt API key not found in secrets. Please configure your secrets.toml file.")
+        st.error("OpenAI API key not found in secrets. Please configure your secrets.toml file.")
         return None
 
     headers = {
         "Content-Type": "application/json",
-        "X-API-Key": API_KEY
+        "Authorization": f"Bearer {API_KEY}"
     }
 
     # Prepare document content
@@ -499,23 +499,14 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     ]
 
     payload = {
-        "data": {
-            "model": "anthropic.claude-sonnet-4-20250514",
-            "temperature": 0.5,
-            "max_tokens": 4096,
-            "dataSources": [],
-            "messages": messages,
-            "options": {
-                "ragOnly": False,
-                "skipRag": True,
-                "model": {"id": "anthropic.claude-sonnet-4-20250514"},
-                "prompt": prompt,
-            },
-        }
+        "model": "gpt-4o-mini",
+        "messages": messages,
+        "temperature": 0.3,
+        "max_tokens": 4096
     }
 
     # DEBUG: Show what model we're using
-    st.session_state.debug_model = payload["data"]["model"]
+    st.session_state.debug_model = payload["model"]
 
     try:
         with st.spinner('Analyzing document(s) and matching to inventory questions...'):
@@ -529,28 +520,18 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
                 st.session_state.debug_status = response.status_code
                 st.session_state.debug_response = str(response_data)[:500]
 
-                # Vanderbilt AI API response parsing
-                # Check if response has the expected structure
-                if "data" in response_data and "content" in response_data["data"]:
-                    content = response_data["data"]["content"]
-                elif "choices" in response_data:
-                    # Fallback to OpenAI format if needed
-                    content = response_data["choices"][0]["message"]["content"]
-                else:
-                    st.error(f"Unexpected response format: {response_data}")
-                    return None
+                # OpenAI standard response parsing
+                content = response_data["choices"][0]["message"]["content"]
 
                 st.write(f"- Response length: {len(content)} characters")
-                model_used = response_data.get('data', {}).get('model', response_data.get('model', 'unknown'))
-                st.write(f"- Model used: {model_used}")
-                tokens_info = response_data.get('data', {}).get('usage', response_data.get('usage', {}))
-                st.write(f"- Tokens used: {tokens_info}")
+                st.write(f"- Model used: {response_data.get('model', 'unknown')}")
+                st.write(f"- Tokens used: {response_data.get('usage', {})}")
 
                 # SAVE TO SESSION STATE
                 st.session_state.debug_llm_response = content
                 st.session_state.debug_response_length = len(content)
-                st.session_state.debug_model_used = model_used
-                st.session_state.debug_tokens = tokens_info
+                st.session_state.debug_model_used = response_data.get('model', 'unknown')
+                st.session_state.debug_tokens = response_data.get('usage', {})
 
                 # Show first 50 lines of response
                 st.write("📝 **First 50 lines of LLM response:**")
@@ -1257,7 +1238,7 @@ def main():
             if 'debug_first_lines' in st.session_state:
                 for idx, line in enumerate(st.session_state.debug_first_lines, 1):
                     st.text(f"{idx}. {line[:80]}")
-
+    
     # Initialize session state
     if 'analyzed_answers' not in st.session_state:
         st.session_state.analyzed_answers = None
