@@ -1,10 +1,14 @@
 import requests
 import json
 import streamlit as st
+import streamlit.components.v1 as components
 import PyPDF2
 import docx
 import io
 import gspread
+
+# DEBUG CONTROL - Set to True to show debug info, False to hide
+SHOW_DEBUG = False
 
 # Define the inventory questions
 INVENTORY_QUESTIONS = {
@@ -76,11 +80,11 @@ INVENTORY_QUESTIONS = {
 # Section Definitions - Balanced sections with 6-7 questions each
 SECTIONS = {
     "Section 1": ["Q1", "Q2", "Q3", "Q4", "Q6", "Q7"],
-    "Section 2": ["Q8", "Q8A", "Q9", "Q11", "Q12", "Q13", "Q14"],
+    "Section 2": ["Q8", "Q8A", "Q37", "Q9", "Q11", "Q12", "Q13", "Q14"],
     "Section 3": ["Q15", "Q16", "Q17", "Q18", "Q19", "Q20"],
     "Section 4": ["Q21", "Q22", "Q23", "Q24", "Q25", "Q26"],
     "Section 5": ["Q27", "Q28", "Q29", "Q30", "Q30A", "Q30B", "Q31", "Q32"],
-    "Section 6": ["Q33", "Q34", "Q35", "Q36", "Q37", "Q38"],
+    "Section 6": ["Q33", "Q34", "Q35", "Q36", "Q38"],
     "Section 7": ["Q39", "Q40", "Q41", "Q42", "Q43", "Q45"],
     "Section 8": ["Q46", "Q47", "Q48", "Q49", "Q50", "Q51", "Q52"]
 }
@@ -329,9 +333,10 @@ def parse_llm_response(response_text):
     current_evidence = None
 
     # DEBUG: Show what we're parsing
-    st.write("🔍 **DEBUG: Parsing LLM Response**")
-    st.write(f"- Total response length: {len(response_text)} characters")
-    st.write(f"- Total lines: {len(response_text.split(chr(10)))}")
+    if SHOW_DEBUG:
+        st.write("🔍 **DEBUG: Parsing LLM Response**")
+        st.write(f"- Total response length: {len(response_text)} characters")
+        st.write(f"- Total lines: {len(response_text.split(chr(10)))}")
 
     try:
         lines = response_text.split('\n')
@@ -404,19 +409,24 @@ def parse_llm_response(response_text):
         st.session_state.debug_evidence_found = len(evidence_found)
         st.session_state.debug_questions_list = questions_found[:10]
 
-        st.write(f"- Questions found in response: {len(questions_found)}")
-        st.write(f"- Answers extracted: {len(answers_found)}")
-        st.write(f"- Evidence found: {len(evidence_found)}")
+        if SHOW_DEBUG:
+            st.write(f"- Questions found in response: {len(questions_found)}")
+            st.write(f"- Answers extracted: {len(answers_found)}")
+            st.write(f"- Evidence found: {len(evidence_found)}")
 
-        if questions_found:
-            st.write(f"- First few questions found: {questions_found[:10]}")
-        else:
-            st.error("⚠️ No questions found in expected format (Q1:, Q2:, etc.)")
-            st.write("**First 10 non-empty lines of response:**")
+            if questions_found:
+                st.write(f"- First few questions found: {questions_found[:10]}")
+            else:
+                st.error("⚠️ No questions found in expected format (Q1:, Q2:, etc.)")
+                st.write("**First 10 non-empty lines of response:**")
+                non_empty = [l.strip() for l in lines if l.strip()][:10]
+                for idx, l in enumerate(non_empty, 1):
+                    st.text(f"{idx}. {l[:100]}")
+
+        # Save debug_first_lines for sidebar (only if questions not found)
+        if not questions_found:
             non_empty = [l.strip() for l in lines if l.strip()][:10]
             st.session_state.debug_first_lines = non_empty
-            for idx, l in enumerate(non_empty, 1):
-                st.text(f"{idx}. {l[:100]}")
 
     except Exception as e:
         st.error(f"Error parsing LLM response: {str(e)}")
@@ -429,22 +439,23 @@ def parse_llm_response(response_text):
                 answers[q_id] = inferred_answer
 
     # DEBUG: Final summary
-    st.write("---")
-    st.write("✅ **FINAL EXTRACTION SUMMARY**")
-    st.write(f"- **Total answers extracted:** {len(answers)}")
-    st.write(f"- **Total evidence items:** {len(evidence)}")
+    if SHOW_DEBUG:
+        st.write("---")
+        st.write("✅ **FINAL EXTRACTION SUMMARY**")
+        st.write(f"- **Total answers extracted:** {len(answers)}")
+        st.write(f"- **Total evidence items:** {len(evidence)}")
 
-    if answers:
-        st.success(f"Successfully extracted {len(answers)} answers!")
-        with st.expander("View extracted answers (first 10)"):
-            for q_id, answer in list(answers.items())[:10]:
-                st.write(f"**{q_id}:** {answer}")
-    else:
-        st.error("❌ NO ANSWERS WERE EXTRACTED!")
-        st.write("**Possible reasons:**")
-        st.write("1. LLM didn't follow the expected format (Q1:, Answer:, Evidence:)")
-        st.write("2. LLM couldn't find information in the document")
-        st.write("3. Response format changed - check the 'First 50 lines' above")
+        if answers:
+            st.success(f"Successfully extracted {len(answers)} answers!")
+            with st.expander("View extracted answers (first 10)"):
+                for q_id, answer in list(answers.items())[:10]:
+                    st.write(f"**{q_id}:** {answer}")
+        else:
+            st.error("❌ NO ANSWERS WERE EXTRACTED!")
+            st.write("**Possible reasons:**")
+            st.write("1. LLM didn't follow the expected format (Q1:, Answer:, Evidence:)")
+            st.write("2. LLM couldn't find information in the document")
+            st.write("3. Response format changed - check the 'First 50 lines' above")
 
     # Store evidence in session state
     st.session_state.evidence = evidence
@@ -485,11 +496,12 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     st.session_state.debug_request = "\n".join(debug_info)
     st.session_state.debug_prompt = prompt
 
-    for line in debug_info:
-        st.write(line)
+    if SHOW_DEBUG:
+        for line in debug_info:
+            st.write(line)
 
-    with st.expander("📄 View Full Prompt Being Sent to LLM"):
-        st.text_area("Prompt", prompt, height=200)
+        with st.expander("📄 View Full Prompt Being Sent to LLM"):
+            st.text_area("Prompt", prompt, height=200)
 
     messages = [
         {
@@ -512,8 +524,9 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         with st.spinner('Analyzing document(s) and matching to inventory questions...'):
             response = requests.post(url, headers=headers, data=json.dumps(payload))
 
-            st.write("🔍 **DEBUG: API Response**")
-            st.write(f"- Status code: {response.status_code}")
+            if SHOW_DEBUG:
+                st.write("🔍 **DEBUG: API Response**")
+                st.write(f"- Status code: {response.status_code}")
 
             if response.status_code == 200:
                 response_data = response.json()
@@ -523,23 +536,24 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
                 # OpenAI standard response parsing
                 content = response_data["choices"][0]["message"]["content"]
 
-                st.write(f"- Response length: {len(content)} characters")
-                st.write(f"- Model used: {response_data.get('model', 'unknown')}")
-                st.write(f"- Tokens used: {response_data.get('usage', {})}")
-
                 # SAVE TO SESSION STATE
                 st.session_state.debug_llm_response = content
                 st.session_state.debug_response_length = len(content)
                 st.session_state.debug_model_used = response_data.get('model', 'unknown')
                 st.session_state.debug_tokens = response_data.get('usage', {})
 
-                # Show first 50 lines of response
-                st.write("📝 **First 50 lines of LLM response:**")
-                lines = content.split('\n')
-                st.text_area("Response Preview", '\n'.join(lines[:50]), height=300)
+                if SHOW_DEBUG:
+                    st.write(f"- Response length: {len(content)} characters")
+                    st.write(f"- Model used: {response_data.get('model', 'unknown')}")
+                    st.write(f"- Tokens used: {response_data.get('usage', {})}")
 
-                with st.expander("📄 View Full LLM Response"):
-                    st.text_area("Full Response", content, height=400, key="full_response")
+                    # Show first 50 lines of response
+                    st.write("📝 **First 50 lines of LLM response:**")
+                    lines = content.split('\n')
+                    st.text_area("Response Preview", '\n'.join(lines[:50]), height=300)
+
+                    with st.expander("📄 View Full LLM Response"):
+                        st.text_area("Full Response", content, height=400, key="full_response")
 
                 return content
             else:
@@ -658,7 +672,8 @@ def display_section(section_name, question_ids, current_answers):
                                  is_valid_evidence(st.session_state.evidence.get(q_id)))
 
             # If there's a current value but no valid evidence, don't pre-fill
-            if current_value and not has_valid_evidence:
+            # Exception: Q8 (AI policy) defaults to "No" if not found
+            if current_value and not has_valid_evidence and q_id != "Q8":
                 current_value = None
 
             # Use consistent column layout for all questions
@@ -696,6 +711,8 @@ def display_section(section_name, question_ids, current_answers):
                     elif evidence_text and not is_valid_evidence(evidence_text):
                         st.write("LLM couldn't find relevant information in the document.")
                         st.caption(f"_LLM response: {evidence_text}_")
+                    elif q_id == "Q8" and current_value == "No":
+                        st.write("No AI policy found in your syllabus, so defaulting to 'No'. Change if needed.")
                     else:
                         st.write("No automated analysis available for this question.")
     
@@ -852,7 +869,11 @@ def process_sections(analyzed_answers):
     
     if 'all_answers' not in st.session_state:
         st.session_state.all_answers = analyzed_answers or {}
-        
+
+        # Default Q8 (AI policy) to "No" if not found in syllabus
+        if 'Q8' not in st.session_state.all_answers or not st.session_state.all_answers.get('Q8'):
+            st.session_state.all_answers['Q8'] = "No"
+
     if 'completed' not in st.session_state:
         st.session_state.completed = False
         
@@ -943,11 +964,21 @@ def process_sections(analyzed_answers):
     
     # Regular section processing for incomplete form
     main_container = st.container()
-    
+
+    # Auto-scroll to top when section changes
+    components.html(
+        """
+        <script>
+            window.parent.document.querySelector('section.main').scrollTo(0, 0);
+        </script>
+        """,
+        height=0,
+    )
+
     with main_container:
         sections_list = list(SECTIONS.items())
         current_section = sections_list[st.session_state.current_section]
-        
+
         section_name, question_ids = current_section
         section_answers, all_answered = display_section(section_name, question_ids, st.session_state.all_answers)
         
@@ -1208,7 +1239,7 @@ def main():
     st.sidebar.write("---")
 
     # Show persistent debug info in sidebar
-    if 'debug_model' in st.session_state:
+    if SHOW_DEBUG and 'debug_model' in st.session_state:
         st.sidebar.write("# 🔍 DEBUG INFO")
 
         with st.sidebar.expander("📊 Extraction Results", expanded=True):
