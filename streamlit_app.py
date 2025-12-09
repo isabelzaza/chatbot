@@ -1196,6 +1196,20 @@ def identify_missing_syllabus_items(answers):
 def main():
     st.set_page_config(layout="wide")
 
+    # Fetch available models from Vanderbilt AI API
+    if 'available_models' not in st.session_state:
+        try:
+            models_response = requests.get("https://prod-api.vanderbilt.ai/available_models")
+            if models_response.status_code == 200:
+                st.session_state.available_models = models_response.json()
+                st.session_state.models_status = "Success"
+            else:
+                st.session_state.available_models = f"Error: Status {models_response.status_code}"
+                st.session_state.models_status = f"Failed ({models_response.status_code})"
+        except Exception as e:
+            st.session_state.available_models = f"Error: {str(e)}"
+            st.session_state.models_status = "Failed"
+
     # VERSION INFO - Always visible
     st.sidebar.write("# 📌 VERSION INFO")
     st.sidebar.success("**Version 3.2** - COMPARISON TO LAST YEAR")
@@ -1238,7 +1252,20 @@ def main():
             if 'debug_first_lines' in st.session_state:
                 for idx, line in enumerate(st.session_state.debug_first_lines, 1):
                     st.text(f"{idx}. {line[:80]}")
-    
+
+    # Available Models Debug Info
+    if 'available_models' in st.session_state:
+        st.sidebar.write("---")
+        st.sidebar.write("# 🌐 VANDERBILT AI API")
+        with st.sidebar.expander("📡 Available Models", expanded=True):
+            st.write(f"**Status:** {st.session_state.get('models_status', 'Unknown')}")
+            st.write("**Endpoint:** `https://prod-api.vanderbilt.ai/available_models`")
+            st.write("")
+            if isinstance(st.session_state.available_models, dict) or isinstance(st.session_state.available_models, list):
+                st.json(st.session_state.available_models)
+            else:
+                st.write(st.session_state.available_models)
+
     # Initialize session state
     if 'analyzed_answers' not in st.session_state:
         st.session_state.analyzed_answers = None
