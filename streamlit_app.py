@@ -8,7 +8,7 @@ import io
 import gspread
 
 # DEBUG CONTROL - Set to True to show debug info, False to hide
-SHOW_DEBUG = False
+SHOW_DEBUG = True
 
 # Define the inventory questions
 INVENTORY_QUESTIONS = {
@@ -464,12 +464,12 @@ def parse_llm_response(response_text):
 # LLM Request Function
 def make_llm_request(file_content1, filename1, file_content2=None, filename2=None):
     """Make LLM request with support for one or two documents"""
-    url = "https://api.openai.com/v1/chat/completions"
+    url = "https://prod-api.vanderbilt.ai/chat"
 
     try:
-        API_KEY = st.secrets["OPENAI_API_KEY"]
+        API_KEY = st.secrets["AMPLIFY_API_KEY"]
     except KeyError:
-        st.error("OpenAI API key not found in secrets. Please configure your secrets.toml file.")
+        st.error("Amplify API key not found in secrets. Please configure your secrets.toml file.")
         return None
 
     headers = {
@@ -511,14 +511,23 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     ]
 
     payload = {
-        "model": "gpt-4o-mini",
-        "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": 4096
+        "data": {
+            "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+            "temperature": 0.3,
+            "max_tokens": 4096,
+            "dataSources": [],
+            "messages": messages,
+            "options": {
+                "ragOnly": False,
+                "skipRag": True,
+                "model": {"id": "us.anthropic.claude-sonnet-4-5-20250929-v1:0"},
+                "prompt": prompt,
+            },
+        }
     }
 
     # DEBUG: Show what model we're using
-    st.session_state.debug_model = payload["model"]
+    st.session_state.debug_model = payload["data"]["model"]
 
     try:
         with st.spinner('Analyzing document(s) and matching to inventory questions...'):
@@ -533,18 +542,37 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
                 st.session_state.debug_status = response.status_code
                 st.session_state.debug_response = str(response_data)[:500]
 
-                # OpenAI standard response parsing
-                content = response_data["choices"][0]["message"]["content"]
+                # Amplify API response parsing - try multiple formats
+                content = None
+                if isinstance(response_data, dict):
+                    if "data" in response_data:
+                        if isinstance(response_data["data"], dict) and "messages" in response_data["data"]:
+                            # If response is in messages array
+                            messages_list = response_data["data"]["messages"]
+                            if messages_list and len(messages_list) > 0:
+                                content = messages_list[-1].get("content", "")
+                        elif isinstance(response_data["data"], str):
+                            # If response is direct string in data
+                            content = response_data["data"]
+
+                    # Fallback - try to find any text content
+                    if not content:
+                        content = response_data.get("content", response_data.get("text", response_data.get("output", "")))
+
+                if not content:
+                    st.error("Could not find response content in API response")
+                    st.write("Debug - Response structure:", response_data)
+                    return ""
 
                 # SAVE TO SESSION STATE
                 st.session_state.debug_llm_response = content
                 st.session_state.debug_response_length = len(content)
-                st.session_state.debug_model_used = response_data.get('model', 'unknown')
+                st.session_state.debug_model_used = payload['data']['model']
                 st.session_state.debug_tokens = response_data.get('usage', {})
 
                 if SHOW_DEBUG:
                     st.write(f"- Response length: {len(content)} characters")
-                    st.write(f"- Model used: {response_data.get('model', 'unknown')}")
+                    st.write(f"- Model used: {payload['data']['model']}")
                     st.write(f"- Tokens used: {response_data.get('usage', {})}")
 
                     # Show first 50 lines of response
@@ -564,8 +592,11 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         st.error(f"An error occurred: {str(e)}")
         return None
     except (KeyError, IndexError) as e:
-        st.error(f"Error parsing OpenAI response: {str(e)}")
+        st.error(f"Error parsing Amplify response: {str(e)}")
         st.error(f"Response data: {response_data}")
+        return None
+    except Exception as e:
+        st.error(f"Error parsing Amplify response: {str(e)}")
         return None
 
 # UI Components
@@ -1230,7 +1261,8 @@ def main():
     # VERSION INFO - Only visible when DEBUG is on
     if SHOW_DEBUG:
         st.sidebar.write("# 📌 VERSION INFO")
-        st.sidebar.success("**Version 3.2** - COMPARISON TO LAST YEAR")
+        st.sidebar.success("**Version 3.2 - AMPLIFY**")
+        st.sidebar.info("**Using Claude Sonnet 4.5 via Vanderbilt Amplify**")
         st.sidebar.write("✓ Compare answers to last year's distribution")
         st.sidebar.write("✓ Show missing common practices")
         st.sidebar.write("✓ Highlight rare innovative practices")
@@ -1301,7 +1333,7 @@ def main():
         in this course, please upload it (in pdf or .docx format). If you don't, you can answer all questions manually. 
         At the end, we will provide you with suggestions for information to add to your syllabus.
                  
-        This app uses Generative AI on OPEN AI. Do not upload anything you do not consider public content.              
+        This app uses Generative AI (Claude Sonnet 4.5 via Vanderbilt Amplify). Do not upload anything you do not consider public content.              
         """)
 
         
