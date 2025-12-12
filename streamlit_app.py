@@ -8,7 +8,7 @@ import io
 import gspread
 
 # DEBUG CONTROL - Set to True to show debug info, False to hide
-SHOW_DEBUG = True
+SHOW_DEBUG = False
 
 # Define the inventory questions
 INVENTORY_QUESTIONS = {
