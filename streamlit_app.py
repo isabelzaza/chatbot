@@ -914,7 +914,57 @@ def process_sections(analyzed_answers):
     # If already completed, show completion page
     if st.session_state.completed:
         st.title("Thank you for completing the inventory!")
-        st.success("Your responses have been successfully uploaded to our database.")
+
+        # Mode selection at the top - allow users to change their choice
+        st.markdown("---")
+        st.subheader("📊 Save Your Responses")
+
+        # Initialize feedback_only_mode if not set
+        if 'feedback_only_mode' not in st.session_state:
+            st.session_state.feedback_only_mode = False
+
+        # Get current mode display text
+        current_mode = "Feedback only - don't save my responses" if st.session_state.feedback_only_mode else "Save my responses to the database"
+
+        # Allow changing mode
+        new_mode_choice = st.radio(
+            "**Your current selection:**",
+            options=["Save my responses to the database", "Feedback only - don't save my responses"],
+            index=1 if st.session_state.feedback_only_mode else 0,
+            key="completion_mode_selection"
+        )
+
+        # Update mode if changed
+        new_feedback_only = (new_mode_choice == "Feedback only - don't save my responses")
+        mode_changed = (new_feedback_only != st.session_state.feedback_only_mode)
+        st.session_state.feedback_only_mode = new_feedback_only
+
+        # Confirm and save button
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            if st.button("Confirm Selection", type="primary", use_container_width=True):
+                # Handle saving based on mode
+                if not st.session_state.feedback_only_mode:
+                    # User wants to save - check if not already saved
+                    if not st.session_state.saved_to_sheets:
+                        if save_to_google_sheets(st.session_state.all_answers):
+                            st.session_state.saved_to_sheets = True
+                            st.success("✓ Your responses have been saved to our database!")
+                        else:
+                            st.error("❌ Error saving to database. Please try again.")
+                    else:
+                        st.success("✓ Your responses were already saved to our database!")
+                else:
+                    # Feedback-only mode
+                    st.info("📋 Your responses will NOT be saved (feedback-only mode). You can still view all feedback below.")
+
+        with col2:
+            if st.session_state.saved_to_sheets:
+                st.success("✓ Saved")
+            elif st.session_state.feedback_only_mode:
+                st.info("Not saving")
+
+        st.markdown("---")
 
         # Optional comments section
         # st.markdown("---")
@@ -989,7 +1039,11 @@ def process_sections(analyzed_answers):
             else:
                 st.success("Great! All the practices you mentioned using appear to be clearly documented in your syllabus.")
 
-        st.success("Thank you for participating! You may now close this browser - your results are already saved.")
+        # Final message based on mode
+        if st.session_state.saved_to_sheets:
+            st.success("Thank you for participating! You may now close this browser - your results are saved in our database.")
+        else:
+            st.success("Thank you for participating! You may now close this browser.")
         
         return
     
@@ -1041,15 +1095,11 @@ def process_sections(analyzed_answers):
                 
                 # Complete button and subsequent actions
                 if st.button("Complete"):
-                    # Only save if we haven't saved before
-                    if save_to_google_sheets(st.session_state.all_answers):
-                        st.session_state.completed = True
-                        st.session_state.saved_to_sheets = True
-                        st.rerun()
-                    else:
-                        st.error("Could not save to Google Sheets")
+                    # Mark as completed - saving will happen on completion page based on user's choice
+                    st.session_state.completed = True
+                    st.rerun()
                 else:
-                    st.warning("Please click Complete to finish and save your responses")
+                    st.warning("Please click Complete to finish")
 
 
 def process_answer_text(question_id, answer_text):
@@ -1321,13 +1371,33 @@ def main():
         
         st.write("""
       	This inventory documents teaching practices for a specific course/semester to understand how we teach in our department (it is not used for evaluation).
-Upload your syllabus or related documents (pdf/docx), and answer remaining questions manually. 
+Upload your syllabus or related documents (pdf/docx), and answer remaining questions manually.
 Answer conservatively—report actual practices, not ideal ones. You'll receive syllabus improvement suggestions at the end.
-                 
+
         This app uses Generative AI via the secure, private and protected Vanderbilt AMPLIFY AI
         """)
 
-        
+        st.markdown("---")
+
+        # Mode selection
+        mode_choice = st.radio(
+            "**Choose how you want to use this tool:**",
+            options=["Save my responses to the database", "Feedback only - don't save my responses"],
+            index=0,
+            help="You can change this choice later on the completion page."
+        )
+
+        # Store mode in session state
+        if 'feedback_only_mode' not in st.session_state:
+            st.session_state.feedback_only_mode = False
+
+        st.session_state.feedback_only_mode = (mode_choice == "Feedback only - don't save my responses")
+
+        if st.session_state.feedback_only_mode:
+            st.info("📋 Feedback-only mode: Your responses will NOT be saved to our database. You'll still receive all feedback and suggestions.")
+
+        st.markdown("---")
+
         # File uploaders in columns
         col1, col2 = st.columns(2)
         with col1:
