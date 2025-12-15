@@ -6,6 +6,11 @@ import PyPDF2
 import docx
 import io
 import gspread
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 # DEBUG CONTROL - Set to True to show debug info, False to hide
 SHOW_DEBUG = False
@@ -238,6 +243,40 @@ IMPORTANT: Only provide answers with explicit evidence from the documents. Do no
 The documents:
 {documents}
 
+"""
+
+# Checklist Verification Prompt Template
+CHECKLIST_PROMPT = """
+Analyze the provided syllabus document(s) to check if they contain the following required elements from the department's syllabus checklist.
+
+For EACH item below, determine if it is present in the syllabus:
+1. **Basic Course Information**: Instructor name, course number, meeting times/location, catalog description
+2. **Learning Objectives**: Clear learning goals or objectives for the course
+3. **Required Text and Materials**: Textbooks, required materials, technical requirements
+4. **Grading Scale**: Percentage or point-based grading scale
+5. **Late Work Policy**: Policy for late assignments
+6. **Missed Exam Policy**: Policy for making up missed exams
+7. **Regrading Policy**: How students can request regrades
+8. **Course Schedule**: Dates with topics and assigned readings
+9. **Major Assignment Dates**: Due dates for major assignments and final exam
+10. **Graded Components**: Description of what assignments/exams count toward grade
+11. **Ungraded Components**: Description of practice or ungraded work (if any)
+12. **Attendance Requirements**: Whether attendance is required and how it's tracked
+13. **Participation Expectations**: How participation is defined and assessed
+14. **Collaboration Policy**: Clarity on whether students can work together on assignments
+15. **Open Book/Resource Policy**: What resources are allowed on exams/assignments
+16. **Academic Integrity Consequences**: What happens if academic integrity is violated
+17. **Generative AI Use Policy**: Clear policies on how students may or may not use AI tools
+
+FORMAT YOUR RESPONSE:
+For each item, respond with:
+- "FOUND: [item name]" if the information is clearly present in the syllabus
+- "MISSING: [item name]" if the information is NOT found or unclear
+
+Be strict - only mark as FOUND if the information is explicitly stated.
+
+The syllabus document(s):
+{documents}
 """
 
 # File Processing Functions
@@ -598,6 +637,219 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
     except Exception as e:
         st.error(f"Error parsing Amplify response: {str(e)}")
         return None
+
+def check_syllabus_checklist(file_content1, filename1, file_content2=None, filename2=None):
+    """Call LLM to check syllabus against department checklist"""
+    url = "https://prod-api.vanderbilt.ai/chat"
+
+    try:
+        API_KEY = st.secrets["AMPLIFY_API_KEY"]
+    except KeyError:
+        st.error("Amplify API key not found in secrets.")
+        return None
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}"
+    }
+
+    # Prepare document content
+    documents_text = f"=== DOCUMENT 1 (Filename: {filename1}) ===\n" + file_content1
+    if file_content2 and filename2:
+        documents_text += f"\n\n=== DOCUMENT 2 (Filename: {filename2}) ===\n" + file_content2
+
+    # Use the CHECKLIST_PROMPT template
+    prompt = CHECKLIST_PROMPT.format(documents=documents_text)
+
+    messages = [
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ]
+
+    payload = {
+        "data": {
+            "model": "gpt-4o",
+            "temperature": 0.3,
+            "max_tokens": 2048,
+            "dataSources": [],
+            "messages": messages,
+            "options": {
+                "ragOnly": False,
+                "skipRag": True,
+                "model": {"id": "gpt-4o"},
+                "prompt": prompt,
+            },
+        }
+    }
+
+    try:
+        with st.spinner('Checking syllabus against department checklist...'):
+            response = requests.post(url, headers=headers, data=json.dumps(payload))
+
+            if response.status_code == 200:
+                response_data = response.json()
+
+                # Parse response content
+                content = None
+                if isinstance(response_data, dict):
+                    if "data" in response_data:
+                        if isinstance(response_data["data"], dict) and "messages" in response_data["data"]:
+                            messages_list = response_data["data"]["messages"]
+                            if messages_list and len(messages_list) > 0:
+                                content = messages_list[-1].get("content", "")
+                        elif isinstance(response_data["data"], str):
+                            content = response_data["data"]
+
+                    if not content:
+                        content = response_data.get("content", response_data.get("text", response_data.get("output", "")))
+
+                if not content:
+                    st.error("Could not find response content in API response")
+                    return None
+
+                # Parse the checklist response
+                missing_items = []
+                lines = content.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("MISSING:"):
+                        # Extract the item name after "MISSING:"
+                        item = line.replace("MISSING:", "").strip()
+                        if item:
+                            missing_items.append(item)
+
+                return missing_items
+            else:
+                st.error(f"Checklist request failed with status code {response.status_code}")
+                return None
+
+    except Exception as e:
+        st.error(f"Error checking checklist: {str(e)}")
+        return None
+
+def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_missing):
+    """Generate PDF with all feedback"""
+    buffer = io.BytesIO()
+
+    # Create the PDF document
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                           rightMargin=72, leftMargin=72,
+                           topMargin=72, bottomMargin=18)
+
+    # Container for the 'Flowable' objects
+    elements = []
+
+    # Define styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor='black',
+        spaceAfter=30,
+        alignment=TA_CENTER
+    )
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=16,
+        textColor='black',
+        spaceAfter=12,
+        spaceBefore=12
+    )
+    normal_style = styles['BodyText']
+    bullet_style = ParagraphStyle(
+        'Bullet',
+        parent=styles['BodyText'],
+        leftIndent=20,
+        spaceAfter=6
+    )
+
+    # Title
+    elements.append(Paragraph("Teaching Inventory Feedback Report", title_style))
+    elements.append(Spacer(1, 0.2*inch))
+
+    # Comparison to last year
+    elements.append(Paragraph("Comparison to Last Year's Courses", heading_style))
+    elements.append(Spacer(1, 0.1*inch))
+
+    if missing_common:
+        elements.append(Paragraph("<b>Practices commonly used in other courses:</b>", normal_style))
+        elements.append(Spacer(1, 0.05*inch))
+        elements.append(Paragraph("The following practices were used by most instructors last year, but you answered 'No' or 'Never' to these questions:", normal_style))
+        elements.append(Spacer(1, 0.1*inch))
+
+        for item in missing_common:
+            elements.append(Paragraph(f"• <b>{item['question']}</b>", bullet_style))
+            elements.append(Paragraph(f"       - Last year, instructors answered yes to this question for <b>{item['percent']}%</b> of courses", bullet_style))
+            elements.append(Spacer(1, 0.05*inch))
+
+        elements.append(Spacer(1, 0.1*inch))
+        elements.append(Paragraph("<i>Each course is different, but it may be worth considering whether these practices could be used in this course, and note that students may expect them.</i>", normal_style))
+        elements.append(Spacer(1, 0.2*inch))
+
+    if using_rare:
+        elements.append(Paragraph("<b>Innovative practices you're using:</b>", normal_style))
+        elements.append(Spacer(1, 0.05*inch))
+        elements.append(Paragraph("Great! This course implements some relatively rare evidence-based approaches:", normal_style))
+        elements.append(Spacer(1, 0.1*inch))
+
+        for item in using_rare:
+            elements.append(Paragraph(f"• <b>{item['question']}</b>", bullet_style))
+            elements.append(Paragraph(f"       - Last year, few courses - <b>{item['percent']}%</b> - used this strategy", bullet_style))
+            elements.append(Spacer(1, 0.05*inch))
+
+        elements.append(Spacer(1, 0.1*inch))
+        elements.append(Paragraph("<i>Each course is different, but it seems like this course implements some relatively rare evidence-based approaches. That's great! Note that students may not be used to them and it may be good to make sure that you spend time explaining them to students, to get good buy-in.</i>", normal_style))
+        elements.append(Spacer(1, 0.2*inch))
+
+    if not missing_common and not using_rare:
+        elements.append(Paragraph("Your course practices align well with typical patterns from last year's courses.", normal_style))
+        elements.append(Spacer(1, 0.2*inch))
+
+    # Notes for syllabus development
+    if missing_items:
+        elements.append(PageBreak())
+        elements.append(Paragraph("Notes for Future Syllabus Development", heading_style))
+        elements.append(Spacer(1, 0.1*inch))
+        elements.append(Paragraph("You may want to clarify the following practices in your syllabus. You mentioned using these, but they were not explicitly discussed in your syllabus:", normal_style))
+        elements.append(Spacer(1, 0.1*inch))
+
+        for category, items in missing_items.items():
+            elements.append(Paragraph(f"<b>{category}</b>", normal_style))
+            for item in items:
+                # Remove bullet if already present
+                clean_item = item.replace('•', '').strip()
+                elements.append(Paragraph(f"• {clean_item}", bullet_style))
+            elements.append(Spacer(1, 0.1*inch))
+
+        elements.append(Paragraph("<i>Adding these details to your syllabus can help students understand course expectations and available resources.</i>", normal_style))
+        elements.append(Spacer(1, 0.2*inch))
+
+    # Department checklist
+    if checklist_missing and len(checklist_missing) > 0:
+        elements.append(PageBreak())
+        elements.append(Paragraph("Department Syllabus Checklist", heading_style))
+        elements.append(Spacer(1, 0.1*inch))
+        elements.append(Paragraph("We could not find evidence of the following items from our department's syllabus checklist. It's possible we missed it, but please verify these are addressed in your syllabus:", normal_style))
+        elements.append(Spacer(1, 0.1*inch))
+
+        for item in checklist_missing:
+            elements.append(Paragraph(f"• {item}", bullet_style))
+
+        elements.append(Spacer(1, 0.1*inch))
+        elements.append(Paragraph("<i>These items are considered important parts of every syllabus in our department.</i>", normal_style))
+
+    # Build PDF
+    doc.build(elements)
+
+    # Get the value of the BytesIO buffer
+    pdf_data = buffer.getvalue()
+    buffer.close()
+
+    return pdf_data
 
 # UI Components
 def create_input_widget(question_id, question_info, current_value=None):
@@ -993,7 +1245,7 @@ def process_sections(analyzed_answers):
             st.info("The following practices were used by most instructors last year, but you answered 'No' or 'Never' to these questions:")
             for item in missing_common:
                 st.markdown(f"- **{item['question']}**")
-                st.markdown(f"  - Last year, instructors answered yes to this question for **{item['percent']}%** of courses")
+                st.markdown(f"       - Last year, instructors answered yes to this question for **{item['percent']}%** of courses")
             st.markdown("*Each course is different, but it may be worth considering whether these practices could be used in this course, and note that students may expect them.*")
             st.markdown("")
 
@@ -1002,7 +1254,7 @@ def process_sections(analyzed_answers):
             st.success("Great! This course implements some relatively rare evidence-based approaches:")
             for item in using_rare:
                 st.markdown(f"- **{item['question']}**")
-                st.markdown(f"  - Last year, few courses - **{item['percent']}%** - used this strategy")
+                st.markdown(f"       - Last year, few courses - **{item['percent']}%** - used this strategy")
             st.markdown("*Each course is different, but it seems like this course implements some relatively rare evidence-based approaches. That's great! Note that students may not be used to them and it may be good to make sure that you spend time explaining them to students, to get good buy-in.*")
             st.markdown("")
 
@@ -1038,6 +1290,51 @@ def process_sections(analyzed_answers):
                 st.caption("💡 Adding these details to your syllabus can help students understand course expectations and available resources.")
             else:
                 st.success("Great! All the practices you mentioned using appear to be clearly documented in your syllabus.")
+
+            # Checklist Analysis - only if we have uploaded files
+            if st.session_state.get('file_content1'):
+                st.markdown("---")
+                st.markdown("### Department Syllabus Checklist")
+
+                # Check if we've already run the checklist analysis
+                if 'checklist_missing_items' not in st.session_state:
+                    # Call LLM to check syllabus against checklist
+                    missing_checklist = check_syllabus_checklist(
+                        st.session_state.file_content1,
+                        st.session_state.filename1,
+                        st.session_state.get('file_content2'),
+                        st.session_state.get('filename2')
+                    )
+                    st.session_state.checklist_missing_items = missing_checklist
+                else:
+                    missing_checklist = st.session_state.checklist_missing_items
+
+                if missing_checklist and len(missing_checklist) > 0:
+                    st.warning("We could not find evidence of the following items from our department's syllabus checklist. It's possible we missed it, but please verify these are addressed in your syllabus:")
+                    for item in missing_checklist:
+                        st.markdown(f"• {item}")
+                    st.caption("💡 These items are considered important parts of every syllabus in our department.")
+                elif missing_checklist is not None:
+                    st.success("Great! Your syllabus appears to include all items from our department checklist.")
+                else:
+                    st.info("Could not complete checklist analysis at this time.")
+
+            # PDF Download Button
+            st.markdown("---")
+            st.subheader("📥 Download Feedback Report")
+
+            # Generate PDF with all feedback
+            missing_checklist = st.session_state.get('checklist_missing_items', [])
+            pdf_data = generate_feedback_pdf(missing_common, using_rare, missing_items or {}, missing_checklist)
+
+            st.download_button(
+                label="Download Feedback as PDF",
+                data=pdf_data,
+                file_name="teaching_inventory_feedback.pdf",
+                mime="application/pdf",
+                type="primary",
+                use_container_width=True
+            )
 
         # Final message based on mode
         if st.session_state.saved_to_sheets:
@@ -1415,11 +1712,17 @@ Answer conservatively—report actual practices, not ideal ones. You'll receive 
                 # Process uploaded files
                 content1, filename1 = process_uploaded_file(file1) if file1 else (None, None)
                 content2, filename2 = process_uploaded_file(file2) if file2 else (None, None)
-                
+
+                # Store file contents in session state for later checklist analysis
+                st.session_state.file_content1 = content1
+                st.session_state.filename1 = filename1
+                st.session_state.file_content2 = content2
+                st.session_state.filename2 = filename2
+
                 if content1 or file1 is None:
                     if content1:
                         st.success("Document(s) processed successfully!")
-                    
+
                     if st.session_state.analyzed_answers is None:
                         if content1:
                             response = make_llm_request(content1, filename1, content2, filename2)
