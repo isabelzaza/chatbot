@@ -768,6 +768,13 @@ def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_m
         leftIndent=20,
         spaceAfter=6
     )
+    sub_bullet_style = ParagraphStyle(
+        'SubBullet',
+        parent=styles['BodyText'],
+        leftIndent=40,
+        spaceAfter=4,
+        fontSize=10
+    )
 
     # Last year's data for time allocation
     last_year_data = {
@@ -813,7 +820,7 @@ def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_m
     elements.append(Spacer(1, 0.2*inch))
 
     # Comparison to last year
-    elements.append(Paragraph("Comparison to Last Year's Courses", heading_style))
+    elements.append(Paragraph("Comparison to Last Year's Courses in our department", heading_style))
     elements.append(Spacer(1, 0.1*inch))
 
     if missing_common:
@@ -923,30 +930,38 @@ def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_m
     elements.append(Paragraph("The following items are recommended for inclusion in all syllabi in our department:", normal_style))
     elements.append(Spacer(1, 0.1*inch))
 
-    checklist_items = [
-        "Basic Course information - details of who (instructor and TAs if applies), where (class and office), when (class and office hour) - Catalog Description",
-        "Learning Objectives",
-        "Required Text and Materials, Technical requirements",
-        "Grading - Grading scale",
-        "Late work, late exam policy (details of what the penalty is)",
-        "Missed exam policy",
-        "Regrading policy, if available",
-        "Schedule",
-        "Dates with topics, assigned readings",
-        "Major assignments and Final dates",
-        "Assignments and Homework",
-        "Graded and ungraded components",
-        "Attendance",
-        "Requirements",
-        "Participation expectations and assessment",
-        "Academic Integrity",
-        "Clarity on whether students can work together, what is open book or not",
-        "Consequences for academic integrity violations",
-        "Clear policies on generative AI use"
-    ]
+    # Organized checklist with main items and sub-items
+    elements.append(Paragraph("• <b>Basic Course Information</b>", bullet_style))
+    elements.append(Paragraph("- Details of who (instructor and TAs if applies)", sub_bullet_style))
+    elements.append(Paragraph("- Where (class and office)", sub_bullet_style))
+    elements.append(Paragraph("- When (class and office hours)", sub_bullet_style))
+    elements.append(Paragraph("- Catalog Description", sub_bullet_style))
 
-    for item in checklist_items:
-        elements.append(Paragraph(f"• {item}", bullet_style))
+    elements.append(Paragraph("• <b>Learning Objectives</b>", bullet_style))
+
+    elements.append(Paragraph("• <b>Required Text and Materials, Technical requirements</b>", bullet_style))
+
+    elements.append(Paragraph("• <b>Grading</b>", bullet_style))
+    elements.append(Paragraph("- Grading scale", sub_bullet_style))
+    elements.append(Paragraph("- Late work, late exam policy (details of what the penalty is)", sub_bullet_style))
+    elements.append(Paragraph("- Missed exam policy", sub_bullet_style))
+    elements.append(Paragraph("- Regrading policy, if available", sub_bullet_style))
+
+    elements.append(Paragraph("• <b>Schedule</b>", bullet_style))
+    elements.append(Paragraph("- Dates with topics, assigned readings", sub_bullet_style))
+    elements.append(Paragraph("- Major assignments and Final dates", sub_bullet_style))
+
+    elements.append(Paragraph("• <b>Assignments and Homework</b>", bullet_style))
+    elements.append(Paragraph("- Graded and ungraded components", sub_bullet_style))
+
+    elements.append(Paragraph("• <b>Attendance</b>", bullet_style))
+    elements.append(Paragraph("- Requirements", sub_bullet_style))
+    elements.append(Paragraph("- Participation expectations and assessment", sub_bullet_style))
+
+    elements.append(Paragraph("• <b>Academic Integrity</b>", bullet_style))
+    elements.append(Paragraph("- Clarity on whether students can work together, what is open book or not", sub_bullet_style))
+    elements.append(Paragraph("- Consequences for academic integrity violations", sub_bullet_style))
+    elements.append(Paragraph("- Clear policies on generative AI use", sub_bullet_style))
 
     # Build PDF
     doc.build(elements)
@@ -1281,6 +1296,15 @@ def process_sections(analyzed_answers):
         if 'feedback_only_mode' not in st.session_state:
             st.session_state.feedback_only_mode = False
 
+        # Automatic save on page load if save mode is selected
+        if not st.session_state.feedback_only_mode and not st.session_state.saved_to_sheets:
+            # User selected "Save to database" mode - save automatically
+            if save_to_google_sheets(st.session_state.all_answers):
+                st.session_state.saved_to_sheets = True
+
+        # Store original mode before allowing changes
+        original_mode = st.session_state.feedback_only_mode
+
         # Get current mode display text
         current_mode = "Feedback only - don't save my responses" if st.session_state.feedback_only_mode else "Save my responses to the database"
 
@@ -1292,29 +1316,37 @@ def process_sections(analyzed_answers):
             key="completion_mode_selection"
         )
 
-        # Update mode if changed
+        # Check if mode changed
         new_feedback_only = (new_mode_choice == "Feedback only - don't save my responses")
-        mode_changed = (new_feedback_only != st.session_state.feedback_only_mode)
+        mode_changed = (new_feedback_only != original_mode)
         st.session_state.feedback_only_mode = new_feedback_only
 
-        # Confirm and save button
+        # Show current save status
         col1, col2 = st.columns([2, 1])
         with col1:
-            if st.button("Confirm Selection", type="primary", use_container_width=True):
-                # Handle saving based on mode
-                if not st.session_state.feedback_only_mode:
-                    # User wants to save - check if not already saved
-                    if not st.session_state.saved_to_sheets:
-                        if save_to_google_sheets(st.session_state.all_answers):
-                            st.session_state.saved_to_sheets = True
-                            st.success("✓ Your responses have been saved to our database!")
+            # Only show button if mode was changed
+            if mode_changed:
+                if st.button("Confirm Mode Change", type="primary", use_container_width=True):
+                    # Handle saving based on new mode
+                    if not st.session_state.feedback_only_mode:
+                        # User switched to save mode - save now
+                        if not st.session_state.saved_to_sheets:
+                            if save_to_google_sheets(st.session_state.all_answers):
+                                st.session_state.saved_to_sheets = True
+                                st.success("✓ Your responses have been saved to our database!")
+                            else:
+                                st.error("❌ Error saving to database. Please try again.")
                         else:
-                            st.error("❌ Error saving to database. Please try again.")
+                            st.success("✓ Your responses were already saved to our database!")
                     else:
-                        st.success("✓ Your responses were already saved to our database!")
+                        # User switched to feedback-only mode
+                        st.info("📋 Mode changed to feedback-only. Your responses will NOT be saved to the database.")
+            else:
+                # No mode change - just show current status
+                if st.session_state.saved_to_sheets:
+                    st.success("✓ Your responses have been automatically saved to our database!")
                 else:
-                    # Feedback-only mode
-                    st.info("📋 Your responses will NOT be saved (feedback-only mode). You can still view all feedback below.")
+                    st.info("📋 Feedback-only mode: Your responses will NOT be saved.")
 
         with col2:
             if st.session_state.saved_to_sheets:
@@ -1343,7 +1375,7 @@ def process_sections(analyzed_answers):
         st.markdown("---")
 
         # Compare to last year's distribution
-        st.subheader("📊 How does this course compare to last year's courses?")
+        st.subheader("📊 How does this course compare to last year's courses in our department?")
         missing_common, using_rare = compare_to_last_year(st.session_state.all_answers)
 
         if missing_common:
