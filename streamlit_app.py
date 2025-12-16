@@ -245,53 +245,6 @@ The documents:
 
 """
 
-# Checklist Verification Prompt Template
-CHECKLIST_PROMPT = """
-Analyze the provided syllabus document(s) to check if they contain the following required elements from the department's syllabus checklist.
-
-For EACH item below, determine if it is present in the syllabus:
-1. **Basic Course Information**: Instructor name (and TAs if applicable), contact information (e.g., email), course number, meeting times and location (class and office), office hours, catalog description
-2. **Learning Objectives**: Clear learning goals or objectives for the course
-3. **Required Text and Materials**: Textbooks, required materials, technical requirements
-4. **Grading Scale**: Percentage or point-based grading scale
-5. **Late Work Policy**: Policy for late assignments WITH SPECIFIC PENALTY DETAILS (e.g., "10% deduction per day", "not accepted after deadline", "50% credit if late").
-
-   EXAMPLES THAT SHOULD BE MARKED AS MISSING:
-   - "Please submit all work on time"
-   - "Contact instructor if you will be late"
-   - "Late work should be avoided"
-   - "Talk to me about late work"
-
-   EXAMPLES THAT SHOULD BE MARKED AS FOUND:
-   - "10% penalty per day late"
-   - "Late work not accepted"
-   - "50% credit for work submitted within 24 hours"
-   - "First late assignment excused, subsequent assignments penalized 20%"
-
-6. **Missed Exam Policy**: Policy for making up missed exams
-7. **Regrading Policy**: How students can request regrades (mark as FOUND even if policy states regrades are not available)
-8. **Course Schedule**: Dates with topics and assigned readings
-9. **Major Assignment Dates**: Due dates for major assignments and final exam
-10. **Graded Components**: Description of what assignments/exams count toward grade
-11. **Ungraded Components**: Description of practice or ungraded work (if any)
-12. **Attendance Requirements**: Whether attendance is required and how it's tracked
-13. **Participation Expectations**: How participation is defined and assessed
-14. **Collaboration Policy**: Clarity on whether students can work together on assignments, what is open book or not
-15. **Academic Integrity Consequences**: What happens if academic integrity is violated (specific consequences)
-16. **Generative AI Use Policy**: Clear policies on how students may or may not use AI tools
-
-FORMAT YOUR RESPONSE:
-For each item, respond with:
-- "FOUND: [item name]" if the information is clearly present in the syllabus
-- "MISSING: [item name]" if the information is NOT found or unclear
-
-Be VERY strict - only mark as FOUND if the information is explicitly stated.
-CRITICAL: For Late Work Policy (#5), you MUST mark it as MISSING unless there are SPECIFIC numerical penalties or consequences (percentages, points deducted, or explicit "not accepted"). Vague statements like "please submit on time" or "contact instructor" are NOT sufficient.
-
-The syllabus document(s):
-{documents}
-"""
-
 # File Processing Functions
 def read_pdf(file):
     pdf_reader = PyPDF2.PdfReader(file)
@@ -652,97 +605,6 @@ def make_llm_request(file_content1, filename1, file_content2=None, filename2=Non
         return None
     except Exception as e:
         st.error(f"Error parsing Amplify response: {str(e)}")
-        return None
-
-def check_syllabus_checklist(file_content1, filename1, file_content2=None, filename2=None):
-    """Call LLM to check syllabus against department checklist"""
-    url = "https://prod-api.vanderbilt.ai/chat"
-
-    try:
-        API_KEY = st.secrets["AMPLIFY_API_KEY"]
-    except KeyError:
-        st.error("Amplify API key not found in secrets.")
-        return None
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {API_KEY}"
-    }
-
-    # Prepare document content
-    documents_text = f"=== DOCUMENT 1 (Filename: {filename1}) ===\n" + file_content1
-    if file_content2 and filename2:
-        documents_text += f"\n\n=== DOCUMENT 2 (Filename: {filename2}) ===\n" + file_content2
-
-    # Use the CHECKLIST_PROMPT template
-    prompt = CHECKLIST_PROMPT.format(documents=documents_text)
-
-    messages = [
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
-
-    payload = {
-        "data": {
-            "model": "gpt-4o",
-            "temperature": 0.3,
-            "max_tokens": 2048,
-            "dataSources": [],
-            "messages": messages,
-            "options": {
-                "ragOnly": False,
-                "skipRag": True,
-                "model": {"id": "gpt-4o"},
-                "prompt": prompt,
-            },
-        }
-    }
-
-    try:
-        with st.spinner('Checking syllabus against department checklist...'):
-            response = requests.post(url, headers=headers, data=json.dumps(payload))
-
-            if response.status_code == 200:
-                response_data = response.json()
-
-                # Parse response content
-                content = None
-                if isinstance(response_data, dict):
-                    if "data" in response_data:
-                        if isinstance(response_data["data"], dict) and "messages" in response_data["data"]:
-                            messages_list = response_data["data"]["messages"]
-                            if messages_list and len(messages_list) > 0:
-                                content = messages_list[-1].get("content", "")
-                        elif isinstance(response_data["data"], str):
-                            content = response_data["data"]
-
-                    if not content:
-                        content = response_data.get("content", response_data.get("text", response_data.get("output", "")))
-
-                if not content:
-                    st.error("Could not find response content in API response")
-                    return None
-
-                # Parse the checklist response
-                missing_items = []
-                lines = content.split('\n')
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith("MISSING:"):
-                        # Extract the item name after "MISSING:"
-                        item = line.replace("MISSING:", "").strip()
-                        if item:
-                            missing_items.append(item)
-
-                return missing_items
-            else:
-                st.error(f"Checklist request failed with status code {response.status_code}")
-                return None
-
-    except Exception as e:
-        st.error(f"Error checking checklist: {str(e)}")
         return None
 
 def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_missing, answers):
@@ -1446,41 +1308,12 @@ def process_sections(analyzed_answers):
             else:
                 st.success("Great! All the practices you mentioned using appear to be clearly documented in your syllabus.")
 
-            # Checklist Analysis - only if we have uploaded files
-            if st.session_state.get('file_content1'):
-                st.markdown("---")
-                st.markdown("### Department Syllabus Checklist")
-
-                # Check if we've already run the checklist analysis
-                if 'checklist_missing_items' not in st.session_state:
-                    # Call LLM to check syllabus against checklist
-                    missing_checklist = check_syllabus_checklist(
-                        st.session_state.file_content1,
-                        st.session_state.filename1,
-                        st.session_state.get('file_content2'),
-                        st.session_state.get('filename2')
-                    )
-                    st.session_state.checklist_missing_items = missing_checklist
-                else:
-                    missing_checklist = st.session_state.checklist_missing_items
-
-                if missing_checklist and len(missing_checklist) > 0:
-                    st.warning("We could not find evidence of the following items from our department's syllabus checklist. It's possible we missed it, but please verify these are addressed in your syllabus:")
-                    for item in missing_checklist:
-                        st.markdown(f"• {item}")
-                    st.caption("💡 These items are considered important parts of every syllabus in our department.")
-                elif missing_checklist is not None:
-                    st.success("Great! Your syllabus appears to include all items from our department checklist.")
-                else:
-                    st.info("Could not complete checklist analysis at this time.")
-
             # PDF Download Button
             st.markdown("---")
             st.subheader("📥 Download Feedback Report")
 
             # Generate PDF with all feedback
-            missing_checklist = st.session_state.get('checklist_missing_items', [])
-            pdf_data = generate_feedback_pdf(missing_common, using_rare, missing_items or {}, missing_checklist, st.session_state.all_answers)
+            pdf_data = generate_feedback_pdf(missing_common, using_rare, missing_items or {}, [], st.session_state.all_answers)
 
             st.download_button(
                 label="Download Feedback as PDF",
