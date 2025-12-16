@@ -297,19 +297,22 @@ def read_docx(file):
 def process_uploaded_file(uploaded_file):
     if uploaded_file is None:
         return None, None
-    
+
     try:
         file_bytes = uploaded_file.getvalue()
         filename = uploaded_file.name  # Get the filename
-        
+
         if uploaded_file.type == "application/pdf":
             text = read_pdf(io.BytesIO(file_bytes))
         elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             text = read_docx(io.BytesIO(file_bytes))
+        elif uploaded_file.type == "text/plain":
+            # Handle .txt files
+            text = file_bytes.decode('utf-8')
         else:
-            st.error("Unsupported file type. Please upload a PDF or Word document.")
+            st.error("Unsupported file type. Please upload a PDF, Word document, or text file.")
             return None, None
-            
+
         return text, filename
     except Exception as e:
         st.error(f"Error processing file: {str(e)}")
@@ -925,7 +928,7 @@ def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_m
 
     # Compact Checklist at the end
     elements.append(PageBreak())
-    elements.append(Paragraph("Department Syllabus Checklist (Complete)", heading_style))
+    elements.append(Paragraph("Department Syllabus Checklist", heading_style))
     elements.append(Spacer(1, 0.1*inch))
     elements.append(Paragraph("The following items are recommended for inclusion in all syllabi in our department:", normal_style))
     elements.append(Spacer(1, 0.1*inch))
@@ -1836,12 +1839,12 @@ Answer conservatively—report actual practices, not ideal ones. You'll receive 
         # File uploaders in columns
         col1, col2 = st.columns(2)
         with col1:
-            file1 = st.file_uploader("Upload your syllabus", 
-                                    type=["pdf", "docx"],
+            file1 = st.file_uploader("Upload your syllabus",
+                                    type=["pdf", "docx", "txt"],
                                     key="file1")
         with col2:
-            file2 = st.file_uploader("Upload any additional teaching document (optional)", 
-                                    type=["pdf", "docx"],
+            file2 = st.file_uploader("Upload any additional teaching document (optional)",
+                                    type=["pdf", "docx", "txt"],
                                     key="file2")
         
         # Start button
