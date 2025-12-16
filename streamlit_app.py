@@ -250,23 +250,22 @@ CHECKLIST_PROMPT = """
 Analyze the provided syllabus document(s) to check if they contain the following required elements from the department's syllabus checklist.
 
 For EACH item below, determine if it is present in the syllabus:
-1. **Basic Course Information**: Instructor name, course number, meeting times/location, catalog description
+1. **Basic Course Information**: Instructor name (and TAs if applicable), course number, meeting times and location (class and office), office hours, catalog description
 2. **Learning Objectives**: Clear learning goals or objectives for the course
 3. **Required Text and Materials**: Textbooks, required materials, technical requirements
 4. **Grading Scale**: Percentage or point-based grading scale
-5. **Late Work Policy**: Policy for late assignments
+5. **Late Work Policy**: Policy for late assignments WITH SPECIFIC PENALTY DETAILS (e.g., "10% deduction per day", "not accepted after deadline", "50% credit if late"). Just mentioning "late work" without stating what happens is NOT sufficient - there must be clear consequences stated.
 6. **Missed Exam Policy**: Policy for making up missed exams
-7. **Regrading Policy**: How students can request regrades
+7. **Regrading Policy**: How students can request regrades (mark as FOUND even if policy states regrades are not available)
 8. **Course Schedule**: Dates with topics and assigned readings
 9. **Major Assignment Dates**: Due dates for major assignments and final exam
 10. **Graded Components**: Description of what assignments/exams count toward grade
 11. **Ungraded Components**: Description of practice or ungraded work (if any)
 12. **Attendance Requirements**: Whether attendance is required and how it's tracked
 13. **Participation Expectations**: How participation is defined and assessed
-14. **Collaboration Policy**: Clarity on whether students can work together on assignments
-15. **Open Book/Resource Policy**: What resources are allowed on exams/assignments
-16. **Academic Integrity Consequences**: What happens if academic integrity is violated
-17. **Generative AI Use Policy**: Clear policies on how students may or may not use AI tools
+14. **Collaboration Policy**: Clarity on whether students can work together on assignments, what is open book or not
+15. **Academic Integrity Consequences**: What happens if academic integrity is violated (specific consequences)
+16. **Generative AI Use Policy**: Clear policies on how students may or may not use AI tools
 
 FORMAT YOUR RESPONSE:
 For each item, respond with:
@@ -274,6 +273,7 @@ For each item, respond with:
 - "MISSING: [item name]" if the information is NOT found or unclear
 
 Be strict - only mark as FOUND if the information is explicitly stated.
+IMPORTANT: For Late Work Policy (#5), ONLY mark as FOUND if there are specific penalty details, not just a mention of "late work".
 
 The syllabus document(s):
 {documents}
@@ -729,8 +729,10 @@ def check_syllabus_checklist(file_content1, filename1, file_content2=None, filen
         st.error(f"Error checking checklist: {str(e)}")
         return None
 
-def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_missing):
+def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_missing, answers):
     """Generate PDF with all feedback"""
+    import numpy as np
+
     buffer = io.BytesIO()
 
     # Create the PDF document
@@ -767,8 +769,47 @@ def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_m
         spaceAfter=6
     )
 
+    # Last year's data for time allocation
+    last_year_data = {
+        "Q20": [30, 5, 25, 30, 20, 0, 5, 30, 0, 25, 5, 20, 0, 0, 25, 15, 0, 20],
+        "Q21": [50, 75, 60, 70, 70, 90, 50, 70, 25, 25, 10, 80, 25, 90, 75, 40, 100, 50],
+        "Q22": [20, 60, 15, 35, 25, 45, 0, 25, 30, 15, 30, 75, 30, 45, 17, 5, 15, 30]
+    }
+
+    question_labels = {
+        "Q20": "Group Work Time",
+        "Q21": "Lecture Time",
+        "Q22": "Max Continuous Lecture"
+    }
+
     # Title
     elements.append(Paragraph("Teaching Inventory Feedback Report", title_style))
+    elements.append(Spacer(1, 0.2*inch))
+
+    # Course Information
+    course_info_parts = []
+    if answers.get('Q1'):  # Instructor Name
+        course_info_parts.append(f"<b>Instructor:</b> {answers.get('Q1')}")
+    if answers.get('Q2'):  # Course Number
+        course_info_parts.append(f"<b>Course:</b> {answers.get('Q2')}")
+    if answers.get('Q3'):  # Semester/Year
+        course_info_parts.append(f"<b>Semester:</b> {answers.get('Q3')}")
+
+    if course_info_parts:
+        course_info_text = " | ".join(course_info_parts)
+        elements.append(Paragraph(course_info_text, normal_style))
+        elements.append(Spacer(1, 0.1*inch))
+
+    # Disclaimer
+    disclaimer_style = ParagraphStyle(
+        'Disclaimer',
+        parent=styles['BodyText'],
+        fontSize=10,
+        textColor='gray',
+        alignment=TA_LEFT,
+        spaceAfter=12
+    )
+    elements.append(Paragraph("<i>This report is prepared by AI, and may be mistaken - it is only designed to be helpful to you, the instructor, in improving your syllabus in the future.</i>", disclaimer_style))
     elements.append(Spacer(1, 0.2*inch))
 
     # Comparison to last year
@@ -809,6 +850,39 @@ def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_m
         elements.append(Paragraph("Your course practices align well with typical patterns from last year's courses.", normal_style))
         elements.append(Spacer(1, 0.2*inch))
 
+    # Time Allocation Analysis
+    elements.append(Paragraph("<b>Your Teaching Time Allocation:</b>", normal_style))
+    elements.append(Spacer(1, 0.1*inch))
+
+    for q_id in ["Q20", "Q21", "Q22"]:
+        current_answer = answers.get(q_id)
+        if current_answer is None or current_answer == "":
+            continue
+
+        try:
+            current_value = float(current_answer)
+        except (ValueError, TypeError):
+            continue
+
+        # Get historical data
+        hist_data = last_year_data[q_id]
+        median = np.median(hist_data)
+        below_count = sum(1 for x in hist_data if x < current_value)
+        percentile_rank = int((below_count / len(hist_data)) * 100)
+
+        # Create description based on question
+        if q_id == "Q20":
+            description = f"<b>Group Work Time:</b> You reported {int(current_value)}% of class time for group work. This places you at the {percentile_rank}th percentile compared to last year's courses (median: {int(median)}%)."
+        elif q_id == "Q21":
+            description = f"<b>Lecture Time:</b> You reported {int(current_value)}% of class time for lectures. This places you at the {percentile_rank}th percentile compared to last year's courses (median: {int(median)}%)."
+        elif q_id == "Q22":
+            description = f"<b>Maximum Continuous Lecture:</b> You reported {int(current_value)} minutes as the maximum time spent lecturing continuously. This places you at the {percentile_rank}th percentile compared to last year's courses (median: {int(median)} minutes)."
+
+        elements.append(Paragraph(description, normal_style))
+        elements.append(Spacer(1, 0.05*inch))
+
+    elements.append(Spacer(1, 0.2*inch))
+
     # Notes for syllabus development
     if missing_items:
         elements.append(PageBreak())
@@ -841,6 +915,38 @@ def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_m
 
         elements.append(Spacer(1, 0.1*inch))
         elements.append(Paragraph("<i>These items are considered important parts of every syllabus in our department.</i>", normal_style))
+
+    # Compact Checklist at the end
+    elements.append(PageBreak())
+    elements.append(Paragraph("Department Syllabus Checklist (Complete)", heading_style))
+    elements.append(Spacer(1, 0.1*inch))
+    elements.append(Paragraph("The following items are recommended for inclusion in all syllabi in our department:", normal_style))
+    elements.append(Spacer(1, 0.1*inch))
+
+    checklist_items = [
+        "Basic Course information - details of who (instructor and TAs if applies), where (class and office), when (class and office hour) - Catalog Description",
+        "Learning Objectives",
+        "Required Text and Materials, Technical requirements",
+        "Grading - Grading scale",
+        "Late work, late exam policy (details of what the penalty is)",
+        "Missed exam policy",
+        "Regrading policy, if available",
+        "Schedule",
+        "Dates with topics, assigned readings",
+        "Major assignments and Final dates",
+        "Assignments and Homework",
+        "Graded and ungraded components",
+        "Attendance",
+        "Requirements",
+        "Participation expectations and assessment",
+        "Academic Integrity",
+        "Clarity on whether students can work together, what is open book or not",
+        "Consequences for academic integrity violations",
+        "Clear policies on generative AI use"
+    ]
+
+    for item in checklist_items:
+        elements.append(Paragraph(f"• {item}", bullet_style))
 
     # Build PDF
     doc.build(elements)
@@ -1325,7 +1431,7 @@ def process_sections(analyzed_answers):
 
             # Generate PDF with all feedback
             missing_checklist = st.session_state.get('checklist_missing_items', [])
-            pdf_data = generate_feedback_pdf(missing_common, using_rare, missing_items or {}, missing_checklist)
+            pdf_data = generate_feedback_pdf(missing_common, using_rare, missing_items or {}, missing_checklist, st.session_state.all_answers)
 
             st.download_button(
                 label="Download Feedback as PDF",
