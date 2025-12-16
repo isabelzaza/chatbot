@@ -250,11 +250,24 @@ CHECKLIST_PROMPT = """
 Analyze the provided syllabus document(s) to check if they contain the following required elements from the department's syllabus checklist.
 
 For EACH item below, determine if it is present in the syllabus:
-1. **Basic Course Information**: Instructor name (and TAs if applicable), course number, meeting times and location (class and office), office hours, catalog description
+1. **Basic Course Information**: Instructor name (and TAs if applicable), contact information (e.g., email), course number, meeting times and location (class and office), office hours, catalog description
 2. **Learning Objectives**: Clear learning goals or objectives for the course
 3. **Required Text and Materials**: Textbooks, required materials, technical requirements
 4. **Grading Scale**: Percentage or point-based grading scale
-5. **Late Work Policy**: Policy for late assignments WITH SPECIFIC PENALTY DETAILS (e.g., "10% deduction per day", "not accepted after deadline", "50% credit if late"). Just mentioning "late work" without stating what happens is NOT sufficient - there must be clear consequences stated.
+5. **Late Work Policy**: Policy for late assignments WITH SPECIFIC PENALTY DETAILS (e.g., "10% deduction per day", "not accepted after deadline", "50% credit if late").
+
+   EXAMPLES THAT SHOULD BE MARKED AS MISSING:
+   - "Please submit all work on time"
+   - "Contact instructor if you will be late"
+   - "Late work should be avoided"
+   - "Talk to me about late work"
+
+   EXAMPLES THAT SHOULD BE MARKED AS FOUND:
+   - "10% penalty per day late"
+   - "Late work not accepted"
+   - "50% credit for work submitted within 24 hours"
+   - "First late assignment excused, subsequent assignments penalized 20%"
+
 6. **Missed Exam Policy**: Policy for making up missed exams
 7. **Regrading Policy**: How students can request regrades (mark as FOUND even if policy states regrades are not available)
 8. **Course Schedule**: Dates with topics and assigned readings
@@ -272,8 +285,8 @@ For each item, respond with:
 - "FOUND: [item name]" if the information is clearly present in the syllabus
 - "MISSING: [item name]" if the information is NOT found or unclear
 
-Be strict - only mark as FOUND if the information is explicitly stated.
-IMPORTANT: For Late Work Policy (#5), ONLY mark as FOUND if there are specific penalty details, not just a mention of "late work".
+Be VERY strict - only mark as FOUND if the information is explicitly stated.
+CRITICAL: For Late Work Policy (#5), you MUST mark it as MISSING unless there are SPECIFIC numerical penalties or consequences (percentages, points deducted, or explicit "not accepted"). Vague statements like "please submit on time" or "contact instructor" are NOT sufficient.
 
 The syllabus document(s):
 {documents}
@@ -936,6 +949,7 @@ def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_m
     # Organized checklist with main items and sub-items
     elements.append(Paragraph("• <b>Basic Course Information</b>", bullet_style))
     elements.append(Paragraph("- Details of who (instructor and TAs if applies)", sub_bullet_style))
+    elements.append(Paragraph("- Contact information (e.g., email)", sub_bullet_style))
     elements.append(Paragraph("- Where (class and office)", sub_bullet_style))
     elements.append(Paragraph("- When (class and office hours)", sub_bullet_style))
     elements.append(Paragraph("- Catalog Description", sub_bullet_style))
