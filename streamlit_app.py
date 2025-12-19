@@ -1228,18 +1228,16 @@ def process_sections(analyzed_answers):
                         fbckonly_answers = {f"Q{i}": "fbckonly" for i in range(1, 53)}
                         if save_to_google_sheets(fbckonly_answers):
                             st.session_state.saved_to_sheets = True
-                            st.info("📋 Mode changed to feedback-only. Your responses will NOT be saved to the database.")
-                        else:
-                            st.error("❌ Error tracking feedback-only usage.")
+                        st.info("📋 Mode changed to feedback-only. Your responses will NOT be saved to the database.")
             else:
                 # No mode change - just show current status
-                if st.session_state.saved_to_sheets:
+                if st.session_state.saved_to_sheets and not st.session_state.feedback_only_mode:
                     st.success("✓ Your responses have been automatically saved to our database!")
-                else:
+                elif st.session_state.feedback_only_mode:
                     st.info("📋 Feedback-only mode: Your responses will NOT be saved.")
 
         with col2:
-            if st.session_state.saved_to_sheets:
+            if st.session_state.saved_to_sheets and not st.session_state.feedback_only_mode:
                 st.success("✓ Saved")
             elif st.session_state.feedback_only_mode:
                 st.info("Not saving")
