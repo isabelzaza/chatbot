@@ -1175,11 +1175,17 @@ def process_sections(analyzed_answers):
         if 'feedback_only_mode' not in st.session_state:
             st.session_state.feedback_only_mode = False
 
-        # Automatic save on page load if save mode is selected
-        if not st.session_state.feedback_only_mode and not st.session_state.saved_to_sheets:
-            # User selected "Save to database" mode - save automatically
-            if save_to_google_sheets(st.session_state.all_answers):
-                st.session_state.saved_to_sheets = True
+        # Automatic save on page load
+        if not st.session_state.saved_to_sheets:
+            if st.session_state.feedback_only_mode:
+                # User selected "Feedback only" mode - save "fbckonly" markers for tracking
+                fbckonly_answers = {f"Q{i}": "fbckonly" for i in range(1, 53)}
+                if save_to_google_sheets(fbckonly_answers):
+                    st.session_state.saved_to_sheets = True
+            else:
+                # User selected "Save to database" mode - save actual answers
+                if save_to_google_sheets(st.session_state.all_answers):
+                    st.session_state.saved_to_sheets = True
 
         # Store original mode before allowing changes
         original_mode = st.session_state.feedback_only_mode
@@ -1206,20 +1212,25 @@ def process_sections(analyzed_answers):
             # Only show button if mode was changed
             if mode_changed:
                 if st.button("Confirm Mode Change", type="primary", use_container_width=True):
+                    # Reset saved status when mode changes
+                    st.session_state.saved_to_sheets = False
+
                     # Handle saving based on new mode
                     if not st.session_state.feedback_only_mode:
-                        # User switched to save mode - save now
-                        if not st.session_state.saved_to_sheets:
-                            if save_to_google_sheets(st.session_state.all_answers):
-                                st.session_state.saved_to_sheets = True
-                                st.success("✓ Your responses have been saved to our database!")
-                            else:
-                                st.error("❌ Error saving to database. Please try again.")
+                        # User switched to save mode - save actual answers
+                        if save_to_google_sheets(st.session_state.all_answers):
+                            st.session_state.saved_to_sheets = True
+                            st.success("✓ Your responses have been saved to our database!")
                         else:
-                            st.success("✓ Your responses were already saved to our database!")
+                            st.error("❌ Error saving to database. Please try again.")
                     else:
-                        # User switched to feedback-only mode
-                        st.info("📋 Mode changed to feedback-only. Your responses will NOT be saved to the database.")
+                        # User switched to feedback-only mode - save "fbckonly" markers
+                        fbckonly_answers = {f"Q{i}": "fbckonly" for i in range(1, 53)}
+                        if save_to_google_sheets(fbckonly_answers):
+                            st.session_state.saved_to_sheets = True
+                            st.info("📋 Mode changed to feedback-only. Your responses will NOT be saved to the database.")
+                        else:
+                            st.error("❌ Error tracking feedback-only usage.")
             else:
                 # No mode change - just show current status
                 if st.session_state.saved_to_sheets:
@@ -1325,7 +1336,7 @@ def process_sections(analyzed_answers):
             )
 
         # Final message based on mode
-        if st.session_state.saved_to_sheets:
+        if st.session_state.saved_to_sheets and not st.session_state.feedback_only_mode:
             st.success("Thank you for participating! You may now close this browser - your results are saved in our database.")
         else:
             st.success("Thank you for participating! You may now close this browser.")
