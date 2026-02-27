@@ -773,7 +773,7 @@ def generate_feedback_pdf(missing_common, using_rare, missing_items, checklist_m
         elements.append(PageBreak())
         elements.append(Paragraph("Notes for Future Syllabus Development", heading_style))
         elements.append(Spacer(1, 0.1*inch))
-        elements.append(Paragraph("You may want to clarify the following practices in your syllabus. You mentioned using these, but they were not explicitly discussed in your syllabus:", normal_style))
+        elements.append(Paragraph("This is merely a comparison of what you reported to your syllabus. You may choose to clarify the following practices, but sometimes these are things you choose to explain in other documents:", normal_style))
         elements.append(Spacer(1, 0.1*inch))
 
         for category, items in missing_items.items():
@@ -938,6 +938,10 @@ def display_section(section_name, question_ids, current_answers):
     section_answers = {}
     all_answered = True
 
+    # Track if user has started editing (moved past section 0 at least once)
+    if 'user_has_edited' not in st.session_state:
+        st.session_state.user_has_edited = False
+
     # Create a container for this section
     section_container = st.container()
 
@@ -954,9 +958,10 @@ def display_section(section_name, question_ids, current_answers):
             has_valid_evidence = (q_id in st.session_state.evidence and
                                  is_valid_evidence(st.session_state.evidence.get(q_id)))
 
-            # If there's a current value but no valid evidence, don't pre-fill
+            # Only clear values without evidence on INITIAL load (before user starts editing)
+            # Once user has started editing, preserve all values (user-entered or pre-filled)
             # Exception: Q8 (AI policy) defaults to "No" if not found
-            if current_value and not has_valid_evidence and q_id != "Q8":
+            if not st.session_state.user_has_edited and current_value and not has_valid_evidence and q_id != "Q8":
                 current_value = None
 
             # Use consistent column layout for all questions
@@ -1380,6 +1385,7 @@ def process_sections(analyzed_answers):
                     if st.button("Next Section"):
                         st.session_state.all_answers.update(section_answers)
                         st.session_state.current_section += 1
+                        st.session_state.user_has_edited = True  # User has started editing
                         st.rerun()
                 else:
                     st.warning("Please answer all questions")
@@ -1666,7 +1672,9 @@ def main():
         st.write("""
       	This inventory documents teaching practices for a specific course/semester to understand how we teach in our department (it is not used for evaluation).
 Upload your syllabus or related documents (pdf/docx), and answer remaining questions manually.
-Answer conservatively—report actual practices, not ideal ones. You'll receive syllabus improvement suggestions at the end.
+Answer conservatively—report actual practices, not ideal ones.
+
+At the end, you can download a PDF that will provide: 1) a comparison of your course to last year's distribution highlighting aspects on which your course is most unique, 2) Notes for syllabus development that highlight what you said you do but was not found on your syllabus, and 3) a Department Checklist for the most important aspects all syllabi should include.
 
         This app uses Generative AI via the secure, private and protected Vanderbilt AMPLIFY AI
         """)
