@@ -302,19 +302,17 @@ def save_to_google_sheets(answers):
             "universe_domain": st.secrets["gcp_service_account"]["universe_domain"]
         }
         
-        # Create row of answers in correct order
+        # Create row of answers in correct order (55 columns total)
+        # Q1-Q52 in order, then Q8A, Q30A, Q30B at the end
         row = []
-        for i in range(1, 53):  # Updated to include Q52
+        for i in range(1, 53):
             q_id = f"Q{i}"
-            # Map new questions to old positions
-            if q_id == "Q5":
-                row.append(answers.get("Q8A", ""))  # AI teaching question
-            elif q_id == "Q10":
-                row.append(answers.get("Q30A", ""))  # Programming language question
-            elif q_id == "Q44":
-                row.append(answers.get("Q30B", ""))  # Student creation question
-            else:
-                row.append(answers.get(q_id, ""))
+            row.append(answers.get(q_id, ""))
+
+        # Add the 3 new questions at the end (columns 53, 54, 55)
+        row.append(answers.get("Q8A", ""))   # Column 53: AI Teaching
+        row.append(answers.get("Q30A", ""))  # Column 54: Programming Language
+        row.append(answers.get("Q30B", ""))  # Column 55: Student Creation
             
         # Connect to Google Sheets
         gc = gspread.service_account_from_dict(credentials)
