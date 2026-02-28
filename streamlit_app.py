@@ -61,7 +61,7 @@ INVENTORY_QUESTIONS = {
     "Q35": {"question": "Do students have access to their graded exams and other assignments?", "format": "y/n"},
     "Q36": {"question": "Do you share answer keys for graded exams and other assignments?", "format": "y/n"},
     "Q37": {"question": "Do you require students to include a statement regarding their use of AI tools/LLMs on submitted assignments, or submit some kind of record to delineate which parts of the assignment represent their own intellectual contributions versus those of generative AI?", "format": "y/n"},
-    "Q38": {"question": "How often do you have students consult with you outside of class?", "format": "choice: never/rarely/once a week/several times a week"},
+    "Q38": {"question": "How often do you have students consult with you outside of class? (any student, not a specific student)", "format": "choice: never/rarely/once a week/several times a week"},
     "Q39": {"question": "Do you give a test at the beginning of the course to see what students already know?", "format": "y/n"},
     "Q40": {"question": "Do you use a pre-and-post test to measure how much students learn in the course?", "format": "y/n"},
     "Q41": {"question": "Do you ask students about their interest or feelings about the subject before and after the course?", "format": "y/n"},
